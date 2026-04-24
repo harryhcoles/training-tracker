@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserState {
+  id              Int       @id @default(1)
+  currentMesoNum  Int       @default(1)
+  currentWeek     Int       @default(1)
+  programmeStart  DateTime  @default(now())
+  squatTarget     Int       @default(120)
+  benchTarget     Int       @default(75)
+  deadliftTarget  Int       @default(120)
+  updatedAt       DateTime  @updatedAt
+}
+
+model ScheduleSlot {
+  id         Int     @id @default(autoincrement())
+  dayOfWeek  Int     @unique
+  categoryId String?
+}
+
+model SessionTemplate {
+  id          String             @id @default(cuid())
+  category    String
+  phase       String
+  name        String
+  description String?
+  durationMin Int?
+  focus       String?
+  isCustom    Boolean            @default(false)
+  exercises   ExerciseTemplate[]
+  logs        SessionLog[]
+  createdAt   DateTime           @default(now())
+}
+
+model ExerciseTemplate {
+  id                Int             @id @default(autoincrement())
+  sessionTemplateId String
+  template          SessionTemplate @relation(fields: [sessionTemplateId], references: [id], onDelete: Cascade)
+  orderIndex        Int
+  name              String
+  sets              Int
+  reps              Int?
+  durationSec       Int?
+  perSide           Boolean         @default(false)
+  note              String?
+}
+
+model SessionLog {
+  id                String          @id @default(cuid())
+  sessionTemplateId String
+  template          SessionTemplate @relation(fields: [sessionTemplateId], references: [id])
+  mesoNum           Int
+  weekNum           Int
+  loggedAt          DateTime        @default(now())
+  sessionRpe        Int?
+  notes             String?
+  durationActualMin Float?
+  distanceKm        Float?
+  avgHr             Int?
+  avgPower          Int?
+  sets              ExerciseSet[]
+}
+
+model ExerciseSet {
+  id           Int        @id @default(autoincrement())
+  sessionLogId String
+  log          SessionLog @relation(fields: [sessionLogId], references: [id], onDelete: Cascade)
+  exerciseName String
+  setNumber    Int
+  weightKg     Float?
+  reps         Int?
+  durationSec  Int?
+  rpe          Int?
+}
