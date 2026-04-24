@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { BIKE_SESSIONS, STRENGTH_SESSIONS } from "../lib/seed-data";
 
 const prisma = new PrismaClient();
 
@@ -27,60 +28,67 @@ async function main() {
     });
   }
 
-  const existingTemplates = await prisma.sessionTemplate.count({
+  const existingNonCustom = await prisma.sessionTemplate.count({
     where: { isCustom: false },
   });
-  if (existingTemplates > 0) {
-    console.log(`Skipping seed templates — ${existingTemplates} already exist`);
-    return;
+  if (existingNonCustom > 0) {
+    console.log(
+      `Removing ${existingNonCustom} existing non-custom templates to re-seed`,
+    );
+    const nonCustomIds = (
+      await prisma.sessionTemplate.findMany({
+        where: { isCustom: false },
+        select: { id: true },
+      })
+    ).map((t) => t.id);
+    await prisma.sessionLog.deleteMany({
+      where: { sessionTemplateId: { in: nonCustomIds } },
+    });
+    await prisma.sessionTemplate.deleteMany({ where: { isCustom: false } });
   }
 
-  await prisma.sessionTemplate.create({
-    data: {
-      category: "legs",
-      phase: "base",
-      name: "Heavy Squat Foundation",
-      description: "Week 1 foundation squat session — build the base.",
-      exercises: {
-        create: [
-          { orderIndex: 0, name: "Back Squat", sets: 4, reps: 6 },
-          { orderIndex: 1, name: "Romanian Deadlift", sets: 3, reps: 8 },
-          { orderIndex: 2, name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-          { orderIndex: 3, name: "Standing Calf Raise", sets: 3, reps: 12 },
-        ],
+  for (const s of STRENGTH_SESSIONS) {
+    await prisma.sessionTemplate.create({
+      data: {
+        category: s.category,
+        phase: s.phase,
+        name: s.name,
+        description: s.description,
+        isCustom: false,
+        exercises: {
+          create: s.exercises.map((e, i) => ({
+            orderIndex: i,
+            name: e.name,
+            sets: e.sets,
+            reps: e.reps ?? null,
+            durationSec: e.durationSec ?? null,
+            perSide: e.perSide ?? false,
+            note: e.note ?? null,
+          })),
+        },
       },
-    },
-  });
+    });
+  }
 
-  await prisma.sessionTemplate.create({
-    data: {
-      category: "chest",
-      phase: "base",
-      name: "Bench Foundation",
-      description: "Week 1 foundation bench session.",
-      exercises: {
-        create: [
-          { orderIndex: 0, name: "Bench Press", sets: 4, reps: 6 },
-          { orderIndex: 1, name: "Incline Dumbbell Press", sets: 3, reps: 8 },
-          { orderIndex: 2, name: "Dips", sets: 3, reps: 8 },
-          { orderIndex: 3, name: "Lateral Raise", sets: 3, reps: 12 },
-        ],
+  for (const b of BIKE_SESSIONS) {
+    await prisma.sessionTemplate.create({
+      data: {
+        category: b.category,
+        phase: b.phase,
+        name: b.name,
+        description: b.description,
+        durationMin: b.durationMin,
+        focus: b.focus,
+        isCustom: false,
       },
-    },
-  });
+    });
+  }
 
-  await prisma.sessionTemplate.create({
-    data: {
-      category: "speed",
-      phase: "base",
-      name: "Cadence Spin-ups",
-      description: "60min Z2 with 4x1min at 110+rpm. Train leg speed for crit attacks.",
-      durationMin: 60,
-      focus: "Cadence",
-    },
-  });
-
-  console.log("Seed complete");
+  const total =
+    STRENGTH_SESSIONS.length + BIKE_SESSIONS.length;
+  console.log(
+    `Seed complete — ${STRENGTH_SESSIONS.length} strength + ${BIKE_SESSIONS.length} bike = ${total} templates`,
+  );
 }
 
 main()
