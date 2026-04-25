@@ -3,6 +3,7 @@ import { Calendar, Library, Settings as SettingsIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { CATEGORY_META, DAY_NAMES, dayOfWeekMonFirst } from "@/lib/utils";
 import { getCurrentPhase } from "@/lib/progression";
+import WeekTimeline from "@/components/week-timeline";
 import {
   getBikeStats,
   getPersonalRecords,
@@ -138,33 +139,20 @@ export default async function Home() {
         )}
       </section>
 
-      <section className="bg-white rounded-2xl p-5 shadow-sm">
-        <div className="flex items-baseline justify-between">
-          <p className="text-xs uppercase tracking-widest text-stone-500">
-            Week {currentWeek}/12 · {currentPhase}
-          </p>
-          <p className="text-xs text-stone-500">Meso {currentMeso}</p>
-        </div>
-        <div className="flex gap-1 mt-3">
-          {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => (
-            <span
-              key={w}
-              className={`flex-1 h-2 rounded-full ${
-                w < currentWeek
-                  ? "bg-amber-600"
-                  : w === currentWeek
-                    ? "bg-amber-400"
-                    : "bg-stone-200"
-              }`}
-            />
-          ))}
-        </div>
-      </section>
+      <WeekTimeline currentWeek={currentWeek} currentMeso={currentMeso} />
 
       <section className="bg-white rounded-2xl p-5 shadow-sm">
-        <h3 className="text-xs uppercase tracking-widest text-stone-500 mb-3">
-          This week
-        </h3>
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="text-xs uppercase tracking-widest text-stone-500">
+            This week
+          </h3>
+          <Link
+            href="/schedule"
+            className="text-xs font-semibold text-amber-700 hover:text-amber-900"
+          >
+            Edit schedule →
+          </Link>
+        </div>
         <ul className="space-y-1.5">
           {Array.from({ length: 7 }, (_, d) => {
             const slot = schedule.find((s) => s.dayOfWeek === d);

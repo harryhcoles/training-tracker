@@ -3,9 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { action } = (await request.json()) as {
-      action: "next-week" | "prev-week" | "next-meso" | "reset";
+    const body = (await request.json()) as {
+      action: "next-week" | "prev-week" | "next-meso" | "reset" | "set-week";
+      week?: number;
     };
+    const { action } = body;
     const state = await prisma.userState.findUnique({ where: { id: 1 } });
     if (!state) {
       return NextResponse.json(
@@ -25,6 +27,18 @@ export async function POST(request: Request) {
       await prisma.userState.update({
         where: { id: 1 },
         data: { currentWeek: prev },
+      });
+    } else if (action === "set-week") {
+      const week = body.week;
+      if (typeof week !== "number" || week < 1 || week > 12) {
+        return NextResponse.json(
+          { ok: false, error: "week must be 1-12" },
+          { status: 400 },
+        );
+      }
+      await prisma.userState.update({
+        where: { id: 1 },
+        data: { currentWeek: week },
       });
     } else if (action === "next-meso") {
       if (state.currentWeek < 12) {
