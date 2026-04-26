@@ -57,35 +57,56 @@ export async function POST() {
         continue;
       }
 
-      // Try to attach to a scheduled session for that day-of-week.
+      // Pick the template whose durationMin is closest to the actual
+      // ride length, restricted to the day's scheduled category if there
+      // is one (else any bike category). Falls back to the closest
+      // endurance template, then to any bike template.
       const activityDate = new Date(activity.start_date);
-      const dayOfWeek = (activityDate.getDay() + 6) % 7; // 0=Mon..6=Sun
+      const dayOfWeek = (activityDate.getDay() + 6) % 7;
       const scheduleSlot = await prisma.scheduleSlot.findUnique({
         where: { dayOfWeek },
       });
-
-      let sessionTemplate = null;
-      if (
+      const activityMinutes = activity.moving_time / 60;
+      const scheduledBikeCat =
         scheduleSlot?.categoryId === "speed" ||
         scheduleSlot?.categoryId === "endurance" ||
         scheduleSlot?.categoryId === "conditioning"
-      ) {
-        sessionTemplate = await prisma.sessionTemplate.findFirst({
-          where: { category: scheduleSlot.categoryId, isCustom: false },
-          orderBy: { createdAt: "asc" },
+          ? scheduleSlot.categoryId
+          : null;
+
+      const pickClosest = async (where: {
+        category?: string | { in: string[] };
+        isCustom?: boolean;
+      }) => {
+        const candidates = await prisma.sessionTemplate.findMany({
+          where: { ...where, durationMin: { not: null } },
+        });
+        if (candidates.length === 0) return null;
+        return candidates.reduce((best, t) => {
+          const bestDiff = Math.abs((best.durationMin ?? 0) - activityMinutes);
+          const tDiff = Math.abs((t.durationMin ?? 0) - activityMinutes);
+          return tDiff < bestDiff ? t : best;
+        });
+      };
+
+      let sessionTemplate = null;
+      if (scheduledBikeCat) {
+        sessionTemplate = await pickClosest({
+          category: scheduledBikeCat,
+          isCustom: false,
         });
       }
-
       if (!sessionTemplate) {
-        sessionTemplate = await prisma.sessionTemplate.findFirst({
-          where: {
-            category: "endurance",
-            isCustom: false,
-            name: { contains: "Z2" },
-          },
+        sessionTemplate = await pickClosest({
+          category: "endurance",
+          isCustom: false,
         });
       }
-
+      if (!sessionTemplate) {
+        sessionTemplate = await pickClosest({
+          category: { in: ["endurance", "speed"] },
+        });
+      }
       if (!sessionTemplate) {
         skipped++;
         continue;
