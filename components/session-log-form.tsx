@@ -2,6 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import SuggestedTarget from "@/components/suggested-target";
+
+type PrevTopSet = {
+  weightKg: number | null;
+  reps: number | null;
+  rpe: number | null;
+};
+
+type Suggestion = { weight: number; reason: string };
 
 type ExerciseDef = {
   id: number;
@@ -54,6 +63,9 @@ export default function SessionLogForm({
   isBike,
   exercises,
   existing,
+  previousTopSets,
+  suggestions,
+  liftTargets,
 }: {
   templateId: string;
   mesoNum: number;
@@ -61,6 +73,9 @@ export default function SessionLogForm({
   isBike: boolean;
   exercises: ExerciseDef[];
   existing: Existing | null;
+  previousTopSets?: Record<string, PrevTopSet>;
+  suggestions?: Record<string, Suggestion>;
+  liftTargets?: Record<string, number | null>;
 }) {
   const router = useRouter();
 
@@ -234,6 +249,11 @@ export default function SessionLogForm({
           {ex.note && (
             <p className="text-xs text-stone-500 mt-1 italic">{ex.note}</p>
           )}
+          <SuggestedTarget
+            prev={previousTopSets?.[ex.name] ?? null}
+            suggestion={suggestions?.[ex.name] ?? null}
+            liftTarget={liftTargets?.[ex.name] ?? null}
+          />
           <div className="mt-4 space-y-2">
             {setsByExercise[ex.name]?.map((s, i) => (
               <div key={i} className="flex items-center gap-2">

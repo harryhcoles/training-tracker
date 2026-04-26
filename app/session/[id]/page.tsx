@@ -2,6 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CATEGORY_META, isBikeCategory } from "@/lib/utils";
+import {
+  getSuggestedTarget,
+  liftTargetForExercise,
+  type PrevTopSet,
+  type SuggestedTarget,
+} from "@/lib/progression";
 import SessionLogForm from "@/components/session-log-form";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +38,47 @@ export default async function SessionPage({
     where: { sessionTemplateId: template.id, mesoNum, weekNum },
     include: { sets: { orderBy: { setNumber: "asc" } } },
   });
+
+  // Find previous top set per exercise (heaviest set in the most recent
+  // logged session for that exercise, excluding the log we're currently
+  // editing). Single query, ordered so first occurrence per exerciseName
+  // is the heaviest set in their most recent log.
+  const exerciseNames = template.exercises.map((e) => e.name);
+  const previousTopSets: Record<string, PrevTopSet> = {};
+  const suggestions: Record<string, SuggestedTarget> = {};
+  const liftTargets: Record<string, number | null> = {};
+
+  if (exerciseNames.length > 0) {
+    const allSets = await prisma.exerciseSet.findMany({
+      where: {
+        exerciseName: { in: exerciseNames },
+        weightKg: { not: null },
+        ...(existingLog ? { sessionLogId: { not: existingLog.id } } : {}),
+      },
+      include: { log: { select: { id: true, loggedAt: true } } },
+      orderBy: [{ log: { loggedAt: "desc" } }, { weightKg: "desc" }],
+    });
+
+    for (const s of allSets) {
+      if (previousTopSets[s.exerciseName]) continue;
+      previousTopSets[s.exerciseName] = {
+        weightKg: s.weightKg,
+        reps: s.reps,
+        rpe: s.rpe,
+      };
+    }
+
+    if (userState) {
+      for (const name of exerciseNames) {
+        liftTargets[name] = liftTargetForExercise(name, userState);
+        const sug = getSuggestedTarget(
+          previousTopSets[name] ?? null,
+          liftTargets[name],
+        );
+        if (sug) suggestions[name] = sug;
+      }
+    }
+  }
 
   const meta = CATEGORY_META[template.category];
   const isBike = isBikeCategory(template.category);
@@ -78,6 +125,9 @@ export default async function SessionPage({
           perSide: e.perSide,
           note: e.note,
         }))}
+        previousTopSets={previousTopSets}
+        suggestions={suggestions}
+        liftTargets={liftTargets}
         existing={
           existingLog
             ? {
