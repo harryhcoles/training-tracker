@@ -8,6 +8,7 @@ import {
   type PrevTopSet,
   type SuggestedTarget,
 } from "@/lib/progression";
+import { getSessionWarnings } from "@/lib/training-rules";
 import SessionLogForm from "@/components/session-log-form";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,29 @@ export default async function SessionPage({
     }
   }
 
+  // Recent logs for the warning system (last ~3 days, with template).
+  const todayDate = new Date();
+  const threeDaysAgo = new Date(todayDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const recentLogs = await prisma.sessionLog.findMany({
+    where: { loggedAt: { gte: threeDaysAgo } },
+    include: { template: { select: { name: true, category: true } } },
+    orderBy: { loggedAt: "desc" },
+  });
+
+  const isEditingTodayLog = !!(
+    existingLog &&
+    existingLog.loggedAt.getFullYear() === todayDate.getFullYear() &&
+    existingLog.loggedAt.getMonth() === todayDate.getMonth() &&
+    existingLog.loggedAt.getDate() === todayDate.getDate()
+  );
+
+  const warnings = getSessionWarnings(
+    template,
+    todayDate,
+    recentLogs.map((l) => ({ loggedAt: l.loggedAt, template: l.template })),
+    isEditingTodayLog,
+  );
+
   const meta = CATEGORY_META[template.category];
   const isBike = isBikeCategory(template.category);
 
@@ -128,6 +152,7 @@ export default async function SessionPage({
         previousTopSets={previousTopSets}
         suggestions={suggestions}
         liftTargets={liftTargets}
+        warnings={warnings}
         existing={
           existingLog
             ? {

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import SuggestedTarget from "@/components/suggested-target";
+import WarningBanner from "@/components/warning-banner";
+import type { SessionWarning } from "@/lib/training-rules";
 
 type PrevTopSet = {
   weightKg: number | null;
@@ -66,6 +68,7 @@ export default function SessionLogForm({
   previousTopSets,
   suggestions,
   liftTargets,
+  warnings,
 }: {
   templateId: string;
   mesoNum: number;
@@ -76,6 +79,7 @@ export default function SessionLogForm({
   previousTopSets?: Record<string, PrevTopSet>;
   suggestions?: Record<string, Suggestion>;
   liftTargets?: Record<string, number | null>;
+  warnings?: SessionWarning[];
 }) {
   const router = useRouter();
 
@@ -324,6 +328,8 @@ export default function SessionLogForm({
           />
         </div>
       </section>
+
+      {warnings && warnings.length > 0 && <WarningBanner warnings={warnings} />}
 
       <button
         onClick={handleSave}
