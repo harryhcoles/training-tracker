@@ -59,7 +59,7 @@ export default async function Home() {
     (l) => l.mesoNum === currentMeso && l.weekNum === currentWeek,
   ).length;
   const topE1rm = prs[0]?.e1rm ?? 0;
-  const recent = getRecentSessions(logs, 3);
+  const recent = getRecentSessions(logs, 5);
 
   const medalColors = ["#fbbf24", "#94a3b8", "#b45309"];
 
