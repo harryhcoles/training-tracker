@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { isStravaConfigured } from "@/lib/strava";
 import SettingsForm from "@/components/settings-form";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export default async function SettingsPage() {
           currentMesoNum: state.currentMesoNum,
           currentWeek: state.currentWeek,
         }}
+        stravaConfigured={isStravaConfigured()}
       />
     </main>
   );

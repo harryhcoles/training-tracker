@@ -64,6 +64,8 @@ model SessionLog {
   distanceKm        Float?
   avgHr             Int?
   avgPower          Int?
+  stravaActivityId  BigInt?         @unique
+  stravaStartDate   DateTime?
   sets              ExerciseSet[]
 }
 

@@ -11,12 +11,48 @@ type State = {
   currentWeek: number;
 };
 
-export default function SettingsForm({ initial }: { initial: State }) {
+export default function SettingsForm({
+  initial,
+  stravaConfigured,
+}: {
+  initial: State;
+  stravaConfigured: boolean;
+}) {
   const router = useRouter();
   const [state, setState] = useState<State>(initial);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [stravaResult, setStravaResult] = useState<
+    | { kind: "success"; synced: number; skipped: number; created: { name: string; id: string }[] }
+    | { kind: "error"; message: string }
+    | null
+  >(null);
+
+  async function syncStrava() {
+    setBusy(true);
+    setErr(null);
+    setStravaResult(null);
+    try {
+      const res = await fetch("/api/strava/sync", { method: "POST" });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      setStravaResult({
+        kind: "success",
+        synced: j.synced,
+        skipped: j.skipped,
+        created: j.created,
+      });
+      router.refresh();
+    } catch (e) {
+      setStravaResult({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Sync failed",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function saveTarget(field: keyof State, value: number) {
     setErr(null);
@@ -160,6 +196,51 @@ export default function SettingsForm({ initial }: { initial: State }) {
         >
           Start next mesocycle
         </button>
+      </section>
+
+      <section className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+        <h2 className="text-xs uppercase tracking-widest text-stone-500">
+          Strava sync
+        </h2>
+        {stravaConfigured ? (
+          <>
+            <p className="text-xs text-stone-500">
+              Pull recent rides from Strava and create logs for them.
+              Won&apos;t duplicate already-synced activities.
+            </p>
+            <button
+              onClick={syncStrava}
+              disabled={busy}
+              className="w-full h-12 rounded-lg text-white font-semibold disabled:opacity-40"
+              style={{ background: "#fc4c02" }}
+            >
+              {busy ? "Syncing…" : "Sync from Strava"}
+            </button>
+            {stravaResult?.kind === "success" && (
+              <div className="text-sm bg-emerald-50 border border-emerald-200 rounded px-3 py-2 text-emerald-800">
+                Synced {stravaResult.synced} · skipped {stravaResult.skipped}
+                {stravaResult.created.length > 0 && (
+                  <ul className="mt-1 list-disc ml-5 text-xs">
+                    {stravaResult.created.map((c) => (
+                      <li key={c.id}>{c.name}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {stravaResult?.kind === "error" && (
+              <p className="text-sm bg-red-50 border border-red-200 rounded px-3 py-2 text-red-800">
+                {stravaResult.message}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-stone-500">
+            Strava not configured. See README for one-time setup
+            (STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN env
+            vars on Vercel).
+          </p>
+        )}
       </section>
 
       <section className="bg-white rounded-2xl p-5 shadow-sm space-y-3">

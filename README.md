@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Training Tracker
 
-## Getting Started
+A personal, single-user crit-cycling and strength log. Next.js 16 + Prisma + Neon Postgres, deployed to Vercel.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env` needs:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+DATABASE_URL="postgresql://..."
+```
 
-## Learn More
+Run migrations + seed once after cloning:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx prisma migrate deploy
+npx prisma db seed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Strava Sync (Optional)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To enable Strava sync, do this once:
 
-## Deploy on Vercel
+1. Go to https://www.strava.com/settings/api
+2. Create an application (Authorization Callback Domain: `localhost`)
+3. Note **Client ID** and **Client Secret**
+4. Visit (replace `CLIENT_ID`):
+   ```
+   http://www.strava.com/oauth/authorize?client_id=CLIENT_ID&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read_all,activity:read_all
+   ```
+5. Click Authorize → you'll be redirected to a broken `localhost` page → copy the `code=...` from the URL
+6. Exchange the code for tokens:
+   ```bash
+   curl -X POST https://www.strava.com/oauth/token \
+     -F client_id=YOUR_CLIENT_ID \
+     -F client_secret=YOUR_CLIENT_SECRET \
+     -F code=YOUR_CODE \
+     -F grant_type=authorization_code
+   ```
+7. From the response, save `refresh_token`. **It does not expire.**
+8. Add three env vars on Vercel (and in local `.env` for testing):
+   - `STRAVA_CLIENT_ID`
+   - `STRAVA_CLIENT_SECRET`
+   - `STRAVA_REFRESH_TOKEN`
+9. Redeploy. Click **Sync from Strava** in Settings.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The sync pulls rides from the most-recently-synced activity onwards (or 14 days back if none yet), only imports `Ride` and `VirtualRide` types, and never duplicates an already-imported activity.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+
+Push to GitHub. Vercel imports the repo. Add `DATABASE_URL` (and optionally the Strava vars) as environment variables. Vercel auto-builds and deploys on every push to `main`.

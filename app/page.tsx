@@ -340,8 +340,16 @@ export default async function Home() {
                       style={{ background: m?.color ?? "#78716c" }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">
-                        {l.template.name}
+                      <p className="font-semibold text-sm truncate flex items-center gap-2">
+                        <span className="truncate">{l.template.name}</span>
+                        {l.stravaActivityId != null && (
+                          <span
+                            className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded shrink-0"
+                            style={{ background: "#fc4c02" }}
+                          >
+                            STRAVA
+                          </span>
+                        )}
                       </p>
                       <p className="text-xs text-stone-500">
                         W{l.weekNum} · {new Date(l.loggedAt).toLocaleDateString()}
