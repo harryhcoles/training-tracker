@@ -12,6 +12,7 @@ const CATEGORIES: Array<{ id: string | null; label: string }> = [
   { id: "back", label: "Back" },
   { id: "speed", label: "Speed" },
   { id: "endurance", label: "Endurance" },
+  { id: "conditioning", label: "Cond" },
 ];
 
 export default function ScheduleEditor({

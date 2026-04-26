@@ -5,7 +5,14 @@ import LibraryItem from "@/components/library-item";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORY_ORDER = ["legs", "chest", "back", "speed", "endurance"];
+const CATEGORY_ORDER = [
+  "legs",
+  "chest",
+  "back",
+  "speed",
+  "endurance",
+  "conditioning",
+];
 
 export default async function LibraryPage() {
   const templates = await prisma.sessionTemplate.findMany({
@@ -44,31 +51,49 @@ export default async function LibraryPage() {
       </header>
 
       {CATEGORY_ORDER.map((cat) => {
-        const items = grouped[cat];
-        if (!items || items.length === 0) return null;
+        const items = grouped[cat] ?? [];
         const meta = CATEGORY_META[cat];
+        // Conditioning has no defaults — always show its section so the
+        // empty-state nudges the user to create their own metcons.
+        const isConditioning = cat === "conditioning";
+        if (items.length === 0 && !isConditioning) return null;
+
         return (
-          <section key={cat} className="space-y-2">
+          <section key={cat} className="space-y-2" id={cat}>
             <h2
               className="text-xs uppercase tracking-widest font-bold"
               style={{ color: meta?.color }}
             >
               {meta?.label ?? cat}
             </h2>
-            <ul className="space-y-2">
-              {items.map((t) => (
-                <li key={t.id}>
-                  <LibraryItem
-                    id={t.id}
-                    name={t.name}
-                    phase={t.phase}
-                    durationMin={t.durationMin}
-                    isCustom={t.isCustom}
-                    color={meta?.color ?? "#78716c"}
-                  />
-                </li>
-              ))}
-            </ul>
+            {items.length === 0 ? (
+              <p className="text-sm text-stone-500 bg-white rounded-xl px-4 py-3 shadow-sm">
+                No conditioning sessions yet. Add your own metcons (bike, row,
+                bodyweight HIIT) via the{" "}
+                <Link
+                  href="/library/new"
+                  className="text-amber-700 font-semibold underline"
+                >
+                  Create Custom Session
+                </Link>{" "}
+                button.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {items.map((t) => (
+                  <li key={t.id}>
+                    <LibraryItem
+                      id={t.id}
+                      name={t.name}
+                      phase={t.phase}
+                      durationMin={t.durationMin}
+                      isCustom={t.isCustom}
+                      color={meta?.color ?? "#78716c"}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         );
       })}

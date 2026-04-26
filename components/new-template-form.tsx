@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
-type Category = "legs" | "chest" | "back" | "speed" | "endurance";
+type Category =
+  | "legs"
+  | "chest"
+  | "back"
+  | "speed"
+  | "endurance"
+  | "conditioning";
 type Phase = "base" | "build" | "peak" | "any";
 
 type ExerciseRow = {
@@ -54,7 +60,10 @@ export default function NewTemplateForm() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const isBike = category === "speed" || category === "endurance";
+  const isBike =
+    category === "speed" ||
+    category === "endurance" ||
+    category === "conditioning";
 
   function updateExercise(i: number, patch: Partial<ExerciseRow>) {
     setExercises((prev) =>
@@ -135,6 +144,7 @@ export default function NewTemplateForm() {
             <option value="back">Back</option>
             <option value="speed">Speed (bike)</option>
             <option value="endurance">Endurance (bike)</option>
+            <option value="conditioning">Conditioning (metcon)</option>
           </select>
         </div>
         <div>
@@ -179,7 +189,9 @@ export default function NewTemplateForm() {
       {isBike ? (
         <section className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
           <h2 className="text-xs uppercase tracking-widest text-stone-500">
-            Bike session
+            {category === "conditioning"
+              ? "Conditioning session"
+              : "Bike session"}
           </h2>
           <div>
             <label className="text-xs text-stone-500 block mb-1">

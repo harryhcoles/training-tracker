@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { CATEGORY_META } from "@/lib/utils";
+import { CATEGORY_META, isBikeCategory } from "@/lib/utils";
 import SessionLogForm from "@/components/session-log-form";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function SessionPage({
   });
 
   const meta = CATEGORY_META[template.category];
-  const isBike = template.category === "speed" || template.category === "endurance";
+  const isBike = isBikeCategory(template.category);
 
   return (
     <main className="max-w-lg mx-auto px-4 py-6 space-y-5">
