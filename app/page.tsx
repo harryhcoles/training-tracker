@@ -129,6 +129,21 @@ export default async function Home() {
               Start session →
             </Link>
           </>
+        ) : todaySlot?.categoryId ? (
+          <>
+            <h2 className="font-serif-display text-3xl font-black mt-1">
+              {meta?.label ?? todaySlot.categoryId}
+            </h2>
+            <p className="text-sm opacity-90 mt-1">
+              No template yet — create one in the library.
+            </p>
+            <Link
+              href="/library/new"
+              className="mt-4 inline-block bg-white/20 hover:bg-white/30 rounded-lg px-4 py-2 text-sm font-semibold"
+            >
+              + Create session →
+            </Link>
+          </>
         ) : (
           <>
             <h2 className="font-serif-display text-3xl font-black mt-1">
@@ -177,7 +192,11 @@ export default async function Home() {
                   style={{ background: m?.color ?? "#d6d3d1" }}
                 />
                 <span className="flex-1 min-w-0 truncate text-sm text-stone-700">
-                  {tmpl ? tmpl.name : "Rest"}
+                  {tmpl
+                    ? tmpl.name
+                    : slot?.categoryId
+                      ? (m?.label ?? slot.categoryId)
+                      : "Rest"}
                 </span>
               </div>
             );
