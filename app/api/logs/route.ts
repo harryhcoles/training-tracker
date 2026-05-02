@@ -9,6 +9,18 @@ type IncomingSet = {
   rpe: number | null;
 };
 
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
 export async function POST(request: Request) {
   try {
     const data = await request.json();
@@ -52,8 +64,15 @@ export async function POST(request: Request) {
       rpe: s.rpe,
     }));
 
+    // Upsert key is (template, today's date) so logging the same template
+    // twice in a week (e.g. Bench on Wed and again on Sat) creates two
+    // separate logs. Re-saving the same day's log just updates it.
+    const now = new Date();
     const existing = await prisma.sessionLog.findFirst({
-      where: { sessionTemplateId, mesoNum, weekNum },
+      where: {
+        sessionTemplateId,
+        loggedAt: { gte: startOfDay(now), lte: endOfDay(now) },
+      },
     });
 
     if (existing) {

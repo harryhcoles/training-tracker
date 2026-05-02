@@ -35,8 +35,18 @@ export default async function SessionPage({
   const mesoNum = userState?.currentMesoNum ?? 1;
   const weekNum = userState?.currentWeek ?? 1;
 
+  // Prefill from today's log of this template (if any). Logs from earlier
+  // in the week stay as separate entries — re-opening a template later in
+  // the week shows an empty form, not the previous session's numbers.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
   const existingLog = await prisma.sessionLog.findFirst({
-    where: { sessionTemplateId: template.id, mesoNum, weekNum },
+    where: {
+      sessionTemplateId: template.id,
+      loggedAt: { gte: startOfToday, lte: endOfToday },
+    },
     include: { sets: { orderBy: { setNumber: "asc" } } },
   });
 
