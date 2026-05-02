@@ -6,6 +6,12 @@ export function getCurrentPhase(week: number): Phase {
   return "peak";
 }
 
+// Standard wave-loading: every 4th week is a deload. Week 12 acts as a
+// taper before the next mesocycle (templates already reflect this).
+export function isDeloadWeek(week: number): boolean {
+  return week === 4 || week === 8 || week === 12;
+}
+
 export type PrevTopSet = {
   weightKg: number | null;
   reps: number | null;
@@ -28,10 +34,20 @@ function roundTo2_5(weight: number): number {
 export function getSuggestedTarget(
   prevTopSet: PrevTopSet | null,
   liftTarget: number | null = null,
+  isDeload: boolean = false,
 ): SuggestedTarget | null {
   if (!prevTopSet || prevTopSet.weightKg == null) return null;
   const prevWeight = prevTopSet.weightKg;
   const prevRpe = prevTopSet.rpe;
+
+  // Deload override: take ~70% of last session, regardless of RPE.
+  if (isDeload) {
+    const w = roundTo2_5(prevWeight * 0.7);
+    return {
+      weight: Math.max(w, 0),
+      reason: "Deload week — 70% of last session",
+    };
+  }
 
   let weight: number;
   let reason: string;

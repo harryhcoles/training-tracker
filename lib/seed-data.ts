@@ -68,14 +68,14 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "legs",
     phase: "base",
-    name: "Max Effort Lower",
-    description: "Week 4. Squat + deadlift in the same session.",
+    name: "Deload Lower",
+    description:
+      "Week 4. Deload — drop loads to ~70%, reset CNS before build phase.",
     exercises: [
-      { name: "Back Squat", sets: 4, reps: 5 },
-      { name: "Deadlift", sets: 3, reps: 5 },
-      { name: "Leg Extension", sets: 3, reps: 12 },
-      { name: "Leg Curl", sets: 3, reps: 12 },
-      { name: "Standing Calf Raise", sets: 4, reps: 12 },
+      { name: "Back Squat", sets: 3, reps: 5, note: "60-70% 1RM, fast bar speed" },
+      { name: "Romanian Deadlift", sets: 2, reps: 8 },
+      { name: "Walking Lunge", sets: 2, reps: 10, perSide: true },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
@@ -120,14 +120,14 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "legs",
     phase: "build",
-    name: "Max Volume",
-    description: "Week 8. Peak volume before shift to strength.",
+    name: "Deload Lower (mid-meso)",
+    description:
+      "Week 8. Mid-meso deload — light squat and posterior chain before peak.",
     exercises: [
-      { name: "Back Squat", sets: 5, reps: 6 },
-      { name: "Romanian Deadlift", sets: 4, reps: 8 },
-      { name: "Walking Lunge", sets: 3, reps: 12, perSide: true },
-      { name: "Leg Curl", sets: 4, reps: 10 },
-      { name: "Standing Calf Raise", sets: 5, reps: 12 },
+      { name: "Back Squat", sets: 3, reps: 5, note: "60-70% 1RM" },
+      { name: "Front Squat", sets: 2, reps: 6 },
+      { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
@@ -225,14 +225,13 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "chest",
     phase: "base",
-    name: "Bench Strength",
-    description: "Week 4. 5x5 bench, close-grip work.",
+    name: "Deload Bench",
+    description: "Week 4. Deload — light bench, technique focus.",
     exercises: [
-      { name: "Bench Press", sets: 5, reps: 5 },
-      { name: "Close-Grip Bench Press", sets: 3, reps: 6 },
-      { name: "Incline Dumbbell Press", sets: 3, reps: 8 },
-      { name: "Overhead Press", sets: 3, reps: 6 },
-      { name: "Tricep Extension", sets: 3, reps: 10 },
+      { name: "Bench Press", sets: 3, reps: 5, note: "60-70% 1RM" },
+      { name: "Incline Dumbbell Press", sets: 2, reps: 8 },
+      { name: "Push-up", sets: 2, reps: 12 },
+      { name: "Tricep Pushdown", sets: 2, reps: 12 },
     ],
   },
   {
@@ -277,14 +276,14 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "chest",
     phase: "build",
-    name: "Max Bench",
-    description: "Week 8. Heavy triples, close-grip focus.",
+    name: "Deload Bench (mid-meso)",
+    description:
+      "Week 8. Mid-meso deload — light bench, prep for peak phase.",
     exercises: [
-      { name: "Bench Press", sets: 5, reps: 3 },
-      { name: "Close-Grip Bench Press", sets: 4, reps: 5 },
-      { name: "Incline Dumbbell Press", sets: 3, reps: 6 },
-      { name: "Dips", sets: 3, reps: 8 },
-      { name: "Tricep Pushdown", sets: 3, reps: 10 },
+      { name: "Bench Press", sets: 3, reps: 5, note: "60-70% 1RM" },
+      { name: "Close-Grip Bench Press", sets: 2, reps: 6 },
+      { name: "Lateral Raise", sets: 2, reps: 12 },
+      { name: "Tricep Pushdown", sets: 2, reps: 12 },
     ],
   },
   {
@@ -382,14 +381,13 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "back",
     phase: "base",
-    name: "Pull Strength",
-    description: "Week 4. 5x5 deadlift, heavy rows.",
+    name: "Deload Pull",
+    description: "Week 4. Deload — light deadlift, back accessories.",
     exercises: [
-      { name: "Deadlift", sets: 5, reps: 5 },
-      { name: "Pull-up", sets: 3, reps: 6 },
-      { name: "Barbell Row", sets: 4, reps: 6 },
-      { name: "Face Pull", sets: 3, reps: 12 },
-      { name: "Barbell Curl", sets: 3, reps: 8 },
+      { name: "Deadlift", sets: 3, reps: 3, note: "60-70% 1RM" },
+      { name: "Pull-up", sets: 3, reps: 5 },
+      { name: "Dumbbell Row", sets: 2, reps: 10, perSide: true },
+      { name: "Face Pull", sets: 2, reps: 15 },
     ],
   },
   {
@@ -434,14 +432,14 @@ export const STRENGTH_SESSIONS: StrengthSessionDef[] = [
   {
     category: "back",
     phase: "build",
-    name: "Max Pull",
-    description: "Week 8. Heavy triples, Pendlay rows.",
+    name: "Deload Pull (mid-meso)",
+    description:
+      "Week 8. Mid-meso deload — light pulling, prep for peak phase.",
     exercises: [
-      { name: "Deadlift", sets: 5, reps: 3 },
-      { name: "Weighted Pull-up", sets: 4, reps: 4 },
-      { name: "Pendlay Row", sets: 4, reps: 5 },
-      { name: "Face Pull", sets: 3, reps: 12 },
-      { name: "Barbell Curl", sets: 3, reps: 8 },
+      { name: "Deadlift", sets: 3, reps: 3, note: "60-70% 1RM" },
+      { name: "Lat Pulldown", sets: 3, reps: 8 },
+      { name: "Cable Row", sets: 2, reps: 10 },
+      { name: "Face Pull", sets: 2, reps: 15 },
     ],
   },
   {

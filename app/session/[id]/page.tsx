@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { CATEGORY_META, isBikeCategory } from "@/lib/utils";
 import {
   getSuggestedTarget,
+  isDeloadWeek,
   liftTargetForExercise,
   type PrevTopSet,
   type SuggestedTarget,
@@ -80,11 +81,13 @@ export default async function SessionPage({
     }
 
     if (userState) {
+      const deload = isDeloadWeek(weekNum);
       for (const name of exerciseNames) {
         liftTargets[name] = liftTargetForExercise(name, userState);
         const sug = getSuggestedTarget(
           previousTopSets[name] ?? null,
           liftTargets[name],
+          deload,
         );
         if (sug) suggestions[name] = sug;
       }

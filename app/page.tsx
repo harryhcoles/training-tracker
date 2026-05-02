@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Calendar, Library, Settings as SettingsIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { CATEGORY_META, DAY_NAMES, dayOfWeekMonFirst } from "@/lib/utils";
-import { getCurrentPhase } from "@/lib/progression";
+import { getCurrentPhase, isDeloadWeek } from "@/lib/progression";
 import WeekTimeline from "@/components/week-timeline";
 import {
   getBikeStats,
@@ -33,6 +33,7 @@ export default async function Home() {
   const currentWeek = userState?.currentWeek ?? 1;
   const currentMeso = userState?.currentMesoNum ?? 1;
   const currentPhase = getCurrentPhase(currentWeek);
+  const onDeload = isDeloadWeek(currentWeek);
 
   function templateForCategoryAndPhase(cat: string | null | undefined) {
     if (!cat) return null;
@@ -112,9 +113,16 @@ export default async function Home() {
             : "linear-gradient(135deg, #57534e, #292524)",
         }}
       >
-        <p className="text-xs uppercase tracking-widest opacity-80">
-          {DAY_NAMES[today]} · Today
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest opacity-80">
+            {DAY_NAMES[today]} · Today
+          </p>
+          {onDeload && (
+            <span className="text-[10px] uppercase font-bold tracking-widest bg-white/30 rounded px-2 py-0.5">
+              Deload
+            </span>
+          )}
+        </div>
         {todayTemplate ? (
           <>
             <h2 className="font-serif-display text-3xl font-black mt-1">

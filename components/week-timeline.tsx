@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { isDeloadWeek } from "@/lib/progression";
 
 export default function WeekTimeline({
   currentWeek,
@@ -18,6 +19,7 @@ export default function WeekTimeline({
   const displayWeek = pending ? optimisticWeek : currentWeek;
   const displayPhase =
     displayWeek <= 4 ? "base" : displayWeek <= 8 ? "build" : "peak";
+  const displayDeload = isDeloadWeek(displayWeek);
 
   async function setWeek(week: number) {
     if (week === currentWeek) return;
@@ -47,6 +49,9 @@ export default function WeekTimeline({
       <div className="flex items-baseline justify-between">
         <p className="text-xs uppercase tracking-widest text-stone-500">
           Week {displayWeek}/12 · {displayPhase}
+          {displayDeload && (
+            <span className="ml-2 text-amber-700 font-bold">· Deload</span>
+          )}
         </p>
         <p className="text-xs text-stone-500">Meso {currentMeso}</p>
       </div>
@@ -54,22 +59,27 @@ export default function WeekTimeline({
         {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
           const isPast = w < displayWeek;
           const isCurrent = w === displayWeek;
+          const isDeload = isDeloadWeek(w);
+          let bg: string;
+          if (isCurrent) {
+            bg = isDeload ? "bg-amber-300" : "bg-amber-400";
+          } else if (isPast) {
+            bg = isDeload ? "bg-amber-700" : "bg-amber-600";
+          } else {
+            bg = isDeload ? "bg-stone-300" : "bg-stone-200";
+          }
           return (
             <button
               key={w}
               type="button"
               onClick={() => setWeek(w)}
               disabled={pending}
-              aria-label={`Go to week ${w}`}
-              className={`flex-1 h-7 rounded-full transition-all relative group disabled:opacity-60`}
+              aria-label={`Go to week ${w}${isDeload ? " (deload)" : ""}`}
+              className="flex-1 h-7 rounded-full transition-all relative group disabled:opacity-60"
             >
               <span
-                className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full ${
-                  isPast
-                    ? "bg-amber-600"
-                    : isCurrent
-                      ? "bg-amber-400"
-                      : "bg-stone-200 group-hover:bg-stone-300"
+                className={`absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full group-hover:opacity-80 ${bg} ${
+                  isDeload ? "h-1" : "h-2"
                 }`}
               />
             </button>
