@@ -44,11 +44,16 @@ export default async function Home() {
     );
   }
 
-  const todaySlot = schedule.find((s) => s.dayOfWeek === today);
-  const todayTemplate = templateForCategoryAndPhase(todaySlot?.categoryId);
-  const meta = todaySlot?.categoryId
-    ? CATEGORY_META[todaySlot.categoryId]
-    : null;
+  // Multiple slots per day are now supported.
+  const slotsByDay: Record<number, string[]> = {};
+  for (let d = 0; d < 7; d++) slotsByDay[d] = [];
+  for (const s of schedule) slotsByDay[s.dayOfWeek].push(s.categoryId);
+
+  const todayCategories = slotsByDay[today];
+  const todayPrimary = todayCategories[0] ?? null;
+  const todayTemplate = templateForCategoryAndPhase(todayPrimary);
+  const todayExtras = todayCategories.slice(1);
+  const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
   const totalVolume = getTotalVolume(logs);
   const bikeStats = getBikeStats(logs);
@@ -128,11 +133,19 @@ export default async function Home() {
             >
               Start session →
             </Link>
+            {todayExtras.length > 0 && (
+              <p className="text-xs opacity-80 mt-3">
+                Also today:{" "}
+                {todayExtras
+                  .map((c) => CATEGORY_META[c]?.label ?? c)
+                  .join(" · ")}
+              </p>
+            )}
           </>
-        ) : todaySlot?.categoryId ? (
+        ) : todayPrimary ? (
           <>
             <h2 className="font-serif-display text-3xl font-black mt-1">
-              {meta?.label ?? todaySlot.categoryId}
+              {meta?.label ?? todayPrimary}
             </h2>
             <p className="text-sm opacity-90 mt-1">
               No template yet — create one in the library.
@@ -170,43 +183,72 @@ export default async function Home() {
         </div>
         <ul className="space-y-1.5">
           {Array.from({ length: 7 }, (_, d) => {
-            const slot = schedule.find((s) => s.dayOfWeek === d);
-            const tmpl = templateForCategoryAndPhase(slot?.categoryId);
-            const m = slot?.categoryId ? CATEGORY_META[slot.categoryId] : null;
+            const cats = slotsByDay[d];
             const isToday = d === today;
-            const content = (
-              <div
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                  isToday ? "bg-amber-50" : ""
-                }`}
-              >
-                <span
-                  className={`w-10 text-xs font-bold ${
-                    isToday ? "text-amber-700" : "text-stone-400"
-                  }`}
-                >
-                  {DAY_NAMES[d]}
-                </span>
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: m?.color ?? "#d6d3d1" }}
-                />
-                <span className="flex-1 min-w-0 truncate text-sm text-stone-700">
-                  {tmpl
-                    ? tmpl.name
-                    : slot?.categoryId
-                      ? (m?.label ?? slot.categoryId)
-                      : "Rest"}
-                </span>
-              </div>
-            );
+            if (cats.length === 0) {
+              return (
+                <li key={d}>
+                  <div
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
+                      isToday ? "bg-amber-50" : ""
+                    }`}
+                  >
+                    <span
+                      className={`w-10 text-xs font-bold ${
+                        isToday ? "text-amber-700" : "text-stone-400"
+                      }`}
+                    >
+                      {DAY_NAMES[d]}
+                    </span>
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: "#d6d3d1" }}
+                    />
+                    <span className="flex-1 min-w-0 truncate text-sm text-stone-700">
+                      Rest
+                    </span>
+                  </div>
+                </li>
+              );
+            }
             return (
-              <li key={d}>
-                {tmpl ? (
-                  <Link href={`/session/${tmpl.id}`}>{content}</Link>
-                ) : (
-                  content
-                )}
+              <li key={d} className={isToday ? "bg-amber-50 rounded-lg" : ""}>
+                <ul>
+                  {cats.map((cat, idx) => {
+                    const tmpl = templateForCategoryAndPhase(cat);
+                    const m = CATEGORY_META[cat];
+                    const label = tmpl ? tmpl.name : (m?.label ?? cat);
+                    const content = (
+                      <div className="flex items-center gap-3 px-3 py-2">
+                        <span
+                          className={`w-10 text-xs font-bold ${
+                            isToday && idx === 0
+                              ? "text-amber-700"
+                              : "text-stone-400"
+                          }`}
+                        >
+                          {idx === 0 ? DAY_NAMES[d] : ""}
+                        </span>
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ background: m?.color ?? "#d6d3d1" }}
+                        />
+                        <span className="flex-1 min-w-0 truncate text-sm text-stone-700">
+                          {label}
+                        </span>
+                      </div>
+                    );
+                    return (
+                      <li key={cat}>
+                        {tmpl ? (
+                          <Link href={`/session/${tmpl.id}`}>{content}</Link>
+                        ) : (
+                          content
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               </li>
             );
           })}

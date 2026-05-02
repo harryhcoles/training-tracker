@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { CATEGORY_META, DAY_NAMES } from "@/lib/utils";
 
-type Slot = { dayOfWeek: number; categoryId: string | null };
+type Slot = { dayOfWeek: number; categoryId: string };
 
-const CATEGORIES: Array<{ id: string | null; label: string }> = [
-  { id: null, label: "Rest" },
+const CATEGORIES: Array<{ id: string; label: string }> = [
   { id: "legs", label: "Legs" },
   { id: "chest", label: "Chest" },
   { id: "back", label: "Back" },
@@ -22,20 +21,30 @@ export default function ScheduleEditor({
   initial: Slot[];
   today: number;
 }) {
-  const [slots, setSlots] = useState<Slot[]>(() => {
-    const byDay: Record<number, Slot> = {};
-    for (const s of initial) byDay[s.dayOfWeek] = s;
-    return Array.from({ length: 7 }, (_, d) => byDay[d] ?? { dayOfWeek: d, categoryId: null });
-  });
-  const [savingDay, setSavingDay] = useState<number | null>(null);
+  const [slotsByDay, setSlotsByDay] = useState<Record<number, Set<string>>>(
+    () => {
+      const map: Record<number, Set<string>> = {};
+      for (let d = 0; d < 7; d++) map[d] = new Set();
+      for (const s of initial) map[s.dayOfWeek].add(s.categoryId);
+      return map;
+    },
+  );
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function setDay(dayOfWeek: number, categoryId: string | null) {
-    setSavingDay(dayOfWeek);
+  async function toggle(dayOfWeek: number, categoryId: string) {
+    const key = `${dayOfWeek}:${categoryId}`;
+    setBusyKey(key);
     setErr(null);
-    setSlots((prev) =>
-      prev.map((s) => (s.dayOfWeek === dayOfWeek ? { ...s, categoryId } : s)),
-    );
+    const wasSelected = slotsByDay[dayOfWeek].has(categoryId);
+    setSlotsByDay((prev) => {
+      const next = { ...prev };
+      const set = new Set(next[dayOfWeek]);
+      if (wasSelected) set.delete(categoryId);
+      else set.add(categoryId);
+      next[dayOfWeek] = set;
+      return next;
+    });
     try {
       const res = await fetch("/api/schedule", {
         method: "POST",
@@ -48,8 +57,17 @@ export default function ScheduleEditor({
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Save failed");
+      // Revert.
+      setSlotsByDay((prev) => {
+        const next = { ...prev };
+        const set = new Set(next[dayOfWeek]);
+        if (wasSelected) set.add(categoryId);
+        else set.delete(categoryId);
+        next[dayOfWeek] = set;
+        return next;
+      });
     } finally {
-      setSavingDay(null);
+      setBusyKey(null);
     }
   }
 
@@ -60,12 +78,16 @@ export default function ScheduleEditor({
           {err}
         </p>
       )}
-      {slots.map((s) => {
-        const meta = s.categoryId ? CATEGORY_META[s.categoryId] : null;
-        const isToday = s.dayOfWeek === today;
+      <p className="text-xs text-stone-500">
+        Tap a category to add it to that day. Tap again to remove. Days with no
+        categories assigned are rest days.
+      </p>
+      {Array.from({ length: 7 }, (_, d) => d).map((d) => {
+        const slotIds = Array.from(slotsByDay[d] ?? new Set<string>());
+        const isToday = d === today;
         return (
           <div
-            key={s.dayOfWeek}
+            key={d}
             className={`bg-white rounded-2xl p-4 shadow-sm border ${
               isToday ? "border-amber-400" : "border-transparent"
             }`}
@@ -73,7 +95,7 @@ export default function ScheduleEditor({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-stone-900">
-                  {DAY_NAMES[s.dayOfWeek]}
+                  {DAY_NAMES[d]}
                 </h3>
                 {isToday && (
                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
@@ -81,19 +103,24 @@ export default function ScheduleEditor({
                   </span>
                 )}
               </div>
-              <span className="text-xs font-semibold" style={{ color: meta?.color ?? "#78716c" }}>
-                {meta?.label ?? "Rest"}
+              <span className="text-xs text-stone-500 truncate ml-2 max-w-[60%] text-right">
+                {slotIds.length === 0
+                  ? "Rest"
+                  : slotIds
+                      .map((id) => CATEGORY_META[id]?.label ?? id)
+                      .join(" · ")}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {CATEGORIES.map((c) => {
-                const isActive = (s.categoryId ?? null) === (c.id ?? null);
-                const cmeta = c.id ? CATEGORY_META[c.id] : null;
+                const isActive = slotsByDay[d]?.has(c.id) ?? false;
+                const cmeta = CATEGORY_META[c.id];
+                const key = `${d}:${c.id}`;
                 return (
                   <button
-                    key={c.id ?? "rest"}
-                    onClick={() => setDay(s.dayOfWeek, c.id ?? null)}
-                    disabled={savingDay === s.dayOfWeek}
+                    key={c.id}
+                    onClick={() => toggle(d, c.id)}
+                    disabled={busyKey === key}
                     className={`h-11 rounded-lg text-sm font-semibold transition-all ${
                       isActive
                         ? "text-white shadow-sm"
@@ -101,9 +128,7 @@ export default function ScheduleEditor({
                     } disabled:opacity-50`}
                     style={
                       isActive
-                        ? {
-                            background: cmeta?.color ?? "#57534e",
-                          }
+                        ? { background: cmeta?.color ?? "#57534e" }
                         : undefined
                     }
                   >

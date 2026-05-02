@@ -19,9 +19,11 @@ model UserState {
 }
 
 model ScheduleSlot {
-  id         Int     @id @default(autoincrement())
-  dayOfWeek  Int     @unique
-  categoryId String?
+  id         Int    @id @default(autoincrement())
+  dayOfWeek  Int
+  categoryId String
+
+  @@unique([dayOfWeek, categoryId])
 }
 
 model SessionTemplate {

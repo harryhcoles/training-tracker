@@ -63,16 +63,19 @@ export async function POST() {
       // endurance template, then to any bike template.
       const activityDate = new Date(activity.start_date);
       const dayOfWeek = (activityDate.getDay() + 6) % 7;
-      const scheduleSlot = await prisma.scheduleSlot.findUnique({
+      const daysSlots = await prisma.scheduleSlot.findMany({
         where: { dayOfWeek },
       });
       const activityMinutes = activity.moving_time / 60;
+      // Of the day's scheduled bike-style slots, prefer endurance over
+      // speed/conditioning since Strava rides are usually steady-state.
+      const bikeCats = daysSlots
+        .map((s) => s.categoryId)
+        .filter(
+          (c) => c === "speed" || c === "endurance" || c === "conditioning",
+        );
       const scheduledBikeCat =
-        scheduleSlot?.categoryId === "speed" ||
-        scheduleSlot?.categoryId === "endurance" ||
-        scheduleSlot?.categoryId === "conditioning"
-          ? scheduleSlot.categoryId
-          : null;
+        bikeCats.find((c) => c === "endurance") ?? bikeCats[0] ?? null;
 
       const pickClosest = async (where: {
         category?: string | { in: string[] };

@@ -10,22 +10,24 @@ async function main() {
     create: { id: 1 },
   });
 
-  const defaultSchedule: Array<[number, string | null]> = [
+  // Default schedule: one category per day where applicable. Rest days
+  // (Fri, Sun) are represented by absence of any slot. Multiple slots
+  // per day are supported but not seeded by default.
+  const defaultSchedule: Array<[number, string]> = [
     [0, "legs"],
     [1, "speed"],
     [2, "chest"],
     [3, "back"],
-    [4, null],
     [5, "endurance"],
-    [6, null],
   ];
 
   for (const [dayOfWeek, categoryId] of defaultSchedule) {
-    await prisma.scheduleSlot.upsert({
-      where: { dayOfWeek },
-      update: { categoryId },
-      create: { dayOfWeek, categoryId },
+    const existing = await prisma.scheduleSlot.findFirst({
+      where: { dayOfWeek, categoryId },
     });
+    if (!existing) {
+      await prisma.scheduleSlot.create({ data: { dayOfWeek, categoryId } });
+    }
   }
 
   const existingNonCustom = await prisma.sessionTemplate.count({
