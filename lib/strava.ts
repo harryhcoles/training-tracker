@@ -62,9 +62,13 @@ async function getAccessToken(): Promise<string> {
 export async function fetchRecentActivities(
   afterTimestamp?: number,
   perPage = 30,
+  page = 1,
 ): Promise<StravaActivity[]> {
   const token = await getAccessToken();
-  const params = new URLSearchParams({ per_page: String(perPage) });
+  const params = new URLSearchParams({
+    per_page: String(perPage),
+    page: String(page),
+  });
   if (afterTimestamp) params.set("after", String(afterTimestamp));
   const res = await fetch(
     `https://www.strava.com/api/v3/athlete/activities?${params}`,
@@ -75,6 +79,22 @@ export async function fetchRecentActivities(
     throw new Error(`Strava activities fetch failed: ${res.status} ${body}`);
   }
   return res.json();
+}
+
+// Walks all pages until exhausted (or maxPages reached). Uses 200/page,
+// the Strava maximum.
+export async function fetchAllActivitiesAfter(
+  afterTimestamp: number,
+  maxPages = 10,
+): Promise<StravaActivity[]> {
+  const all: StravaActivity[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const batch = await fetchRecentActivities(afterTimestamp, 200, page);
+    if (batch.length === 0) break;
+    all.push(...batch);
+    if (batch.length < 200) break;
+  }
+  return all;
 }
 
 export type StravaLogData = {
