@@ -7,9 +7,11 @@ import { isDeloadWeek } from "@/lib/progression";
 export default function WeekTimeline({
   currentWeek,
   currentMeso,
+  totalWeeks = 12,
 }: {
   currentWeek: number;
   currentMeso: number;
+  totalWeeks?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -48,7 +50,7 @@ export default function WeekTimeline({
     <section className="bg-white rounded-2xl p-5 shadow-sm">
       <div className="flex items-baseline justify-between">
         <p className="text-xs uppercase tracking-widest text-stone-500">
-          Week {displayWeek}/12 · {displayPhase}
+          Week {displayWeek}/{totalWeeks} · {displayPhase}
           {displayDeload && (
             <span className="ml-2 text-amber-700 font-bold">· Deload</span>
           )}
@@ -56,7 +58,7 @@ export default function WeekTimeline({
         <p className="text-xs text-stone-500">Meso {currentMeso}</p>
       </div>
       <div className="flex gap-1 mt-3">
-        {Array.from({ length: 12 }, (_, i) => i + 1).map((w) => {
+        {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => {
           const isPast = w < displayWeek;
           const isCurrent = w === displayWeek;
           const isDeload = isDeloadWeek(w);

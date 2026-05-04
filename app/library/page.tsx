@@ -1,28 +1,25 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { CATEGORY_META } from "@/lib/utils";
-import LibraryItem from "@/components/library-item";
+import { CATEGORY_META, DAY_NAMES } from "@/lib/utils";
+import ProgrammeCard from "@/components/programme-card";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORY_ORDER = [
-  "legs",
-  "chest",
-  "back",
-  "speed",
-  "endurance",
-  "conditioning",
-];
-
 export default async function LibraryPage() {
-  const templates = await prisma.sessionTemplate.findMany({
-    orderBy: [{ category: "asc" }, { phase: "asc" }, { name: "asc" }],
-  });
+  const [programmes, userState] = await Promise.all([
+    prisma.programme.findMany({
+      include: {
+        scheduleSlots: {
+          orderBy: [{ dayOfWeek: "asc" }, { categoryId: "asc" }],
+        },
+        _count: { select: { templates: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.userState.findUnique({ where: { id: 1 } }),
+  ]);
 
-  const grouped: Record<string, typeof templates> = {};
-  for (const t of templates) {
-    (grouped[t.category] ??= []).push(t);
-  }
+  const activeId = userState?.activeProgrammeId ?? null;
 
   return (
     <main className="max-w-lg mx-auto px-4 py-6 space-y-5">
@@ -36,67 +33,56 @@ export default async function LibraryPage() {
       <header className="flex items-baseline justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-amber-700">
-            {templates.length} sessions
+            Programmes
           </p>
           <h1 className="font-serif-display text-3xl font-black mt-1">
             Library
           </h1>
         </div>
         <Link
-          href="/library/new"
-          className="bg-stone-900 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-stone-800"
+          href="/library/templates"
+          className="text-xs font-semibold text-stone-500 hover:text-stone-800"
         >
-          + New
+          All templates →
         </Link>
       </header>
 
-      {CATEGORY_ORDER.map((cat) => {
-        const items = grouped[cat] ?? [];
-        const meta = CATEGORY_META[cat];
-        // Conditioning has no defaults — always show its section so the
-        // empty-state nudges the user to create their own metcons.
-        const isConditioning = cat === "conditioning";
-        if (items.length === 0 && !isConditioning) return null;
-
-        return (
-          <section key={cat} className="space-y-2" id={cat}>
-            <h2
-              className="text-xs uppercase tracking-widest font-bold"
-              style={{ color: meta?.color }}
-            >
-              {meta?.label ?? cat}
-            </h2>
-            {items.length === 0 ? (
-              <p className="text-sm text-stone-500 bg-white rounded-xl px-4 py-3 shadow-sm">
-                No conditioning sessions yet. Add your own metcons (bike, row,
-                bodyweight HIIT) via the{" "}
-                <Link
-                  href="/library/new"
-                  className="text-amber-700 font-semibold underline"
-                >
-                  Create Custom Session
-                </Link>{" "}
-                button.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {items.map((t) => (
-                  <li key={t.id}>
-                    <LibraryItem
-                      id={t.id}
-                      name={t.name}
-                      phase={t.phase}
-                      durationMin={t.durationMin}
-                      isCustom={t.isCustom}
-                      color={meta?.color ?? "#78716c"}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        );
-      })}
+      {programmes.length === 0 ? (
+        <p className="text-sm text-stone-500 bg-white rounded-xl px-4 py-3 shadow-sm">
+          No programmes yet. (Custom programme creation coming later.)
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {programmes.map((p) => {
+            // Group schedule slots by day so the card can display the
+            // weekly shape concisely.
+            const byDay: Record<number, string[]> = {};
+            for (let d = 0; d < 7; d++) byDay[d] = [];
+            for (const s of p.scheduleSlots) byDay[s.dayOfWeek].push(s.categoryId);
+            const summary = Array.from({ length: 7 }, (_, d) => ({
+              day: DAY_NAMES[d],
+              cats: byDay[d],
+            }));
+            return (
+              <li key={p.id}>
+                <ProgrammeCard
+                  id={p.id}
+                  name={p.name}
+                  description={p.description}
+                  totalWeeks={p.totalWeeks}
+                  templateCount={p._count.templates}
+                  isActive={p.id === activeId}
+                  schedule={summary.map((s) => ({
+                    day: s.day,
+                    cats: s.cats.map((c) => CATEGORY_META[c]?.label ?? c),
+                    colors: s.cats.map((c) => CATEGORY_META[c]?.color ?? "#78716c"),
+                  }))}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </main>
   );
 }

@@ -81,13 +81,49 @@ export default async function Home() {
   const currentMeso = userState?.currentMesoNum ?? 1;
   const currentPhase = getCurrentPhase(currentWeek);
   const onDeload = isDeloadWeek(currentWeek);
+  const activeProgrammeId = userState?.activeProgrammeId ?? null;
 
-  function templateForCategoryAndPhase(cat: string | null | undefined) {
+  // Look up the active programme's name for the header. Cheap separate
+  // query — could also fold it into the Promise.all but readability wins.
+  const activeProgramme = activeProgrammeId
+    ? await prisma.programme.findUnique({
+        where: { id: activeProgrammeId },
+        select: { name: true, totalWeeks: true },
+      })
+    : null;
+
+  // Picker: when a programme is active, prefer a programme template
+  // matching (programmeId, weekNum, dayOfWeek, category). Otherwise
+  // (or if no programme template exists for that slot — e.g. strength
+  // categories under a bike-only programme), fall back to the existing
+  // phase-based picker.
+  function templateForCategoryAndPhase(
+    cat: string | null | undefined,
+    forDayOfWeek: number,
+  ) {
     if (!cat) return null;
+    if (activeProgrammeId) {
+      const programmeMatch = templates.find(
+        (t) =>
+          t.programmeId === activeProgrammeId &&
+          t.weekNum === currentWeek &&
+          t.dayOfWeek === forDayOfWeek &&
+          t.category === cat,
+      );
+      if (programmeMatch) return programmeMatch;
+    }
     return (
-      templates.find((t) => t.category === cat && t.phase === currentPhase) ??
-      templates.find((t) => t.category === cat && t.phase === "any") ??
-      templates.find((t) => t.category === cat) ??
+      templates.find(
+        (t) =>
+          t.programmeId == null &&
+          t.category === cat &&
+          t.phase === currentPhase,
+      ) ??
+      templates.find(
+        (t) =>
+          t.programmeId == null && t.category === cat && t.phase === "any",
+      ) ??
+      templates.find((t) => t.programmeId == null && t.category === cat) ??
       null
     );
   }
@@ -99,7 +135,7 @@ export default async function Home() {
 
   const todayCategories = slotsByDay[today];
   const todayPrimary = todayCategories[0] ?? null;
-  const todayTemplate = templateForCategoryAndPhase(todayPrimary);
+  const todayTemplate = templateForCategoryAndPhase(todayPrimary, today);
   const todayExtras = todayCategories.slice(1);
   const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
@@ -114,7 +150,9 @@ export default async function Home() {
       <header className="pt-2 flex items-start justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-amber-700">
-            Crit Programme · 12wk
+            {activeProgramme
+              ? `${activeProgramme.name} · ${activeProgramme.totalWeeks}wk`
+              : "Training Tracker"}
           </p>
           <h1 className="font-serif-display text-4xl font-black mt-1">
             Training Log
@@ -215,7 +253,11 @@ export default async function Home() {
         )}
       </section>
 
-      <WeekTimeline currentWeek={currentWeek} currentMeso={currentMeso} />
+      <WeekTimeline
+        currentWeek={currentWeek}
+        currentMeso={currentMeso}
+        totalWeeks={activeProgramme?.totalWeeks ?? 12}
+      />
 
       <section className="bg-white rounded-2xl p-5 shadow-sm">
         <div className="flex items-baseline justify-between mb-3">
@@ -263,7 +305,7 @@ export default async function Home() {
               <li key={d} className={isToday ? "bg-amber-50 rounded-lg" : ""}>
                 <ul>
                   {cats.map((cat, idx) => {
-                    const tmpl = templateForCategoryAndPhase(cat);
+                    const tmpl = templateForCategoryAndPhase(cat, d);
                     const m = CATEGORY_META[cat];
                     const label = tmpl ? tmpl.name : (m?.label ?? cat);
                     const content = (

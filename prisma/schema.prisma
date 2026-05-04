@@ -8,14 +8,38 @@ datasource db {
 }
 
 model UserState {
-  id              Int       @id @default(1)
-  currentMesoNum  Int       @default(1)
-  currentWeek     Int       @default(1)
-  programmeStart  DateTime  @default(now())
-  squatTarget     Int       @default(120)
-  benchTarget     Int       @default(75)
-  deadliftTarget  Int       @default(120)
-  updatedAt       DateTime  @updatedAt
+  id                Int        @id @default(1)
+  currentMesoNum    Int        @default(1)
+  currentWeek       Int        @default(1)
+  programmeStart    DateTime   @default(now())
+  squatTarget       Int        @default(120)
+  benchTarget       Int        @default(75)
+  deadliftTarget    Int        @default(120)
+  activeProgrammeId String?
+  activeProgramme   Programme? @relation(fields: [activeProgrammeId], references: [id])
+  updatedAt         DateTime   @updatedAt
+}
+
+model Programme {
+  id            String           @id @default(cuid())
+  name          String           @unique
+  description   String?
+  totalWeeks    Int              @default(12)
+  isCustom      Boolean          @default(false)
+  scheduleSlots ProgrammeSlot[]
+  templates     SessionTemplate[]
+  activeIn      UserState[]
+  createdAt     DateTime         @default(now())
+}
+
+model ProgrammeSlot {
+  id          Int       @id @default(autoincrement())
+  programmeId String
+  programme   Programme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int
+  categoryId  String
+
+  @@unique([programmeId, dayOfWeek, categoryId])
 }
 
 model ScheduleSlot {
@@ -35,6 +59,10 @@ model SessionTemplate {
   durationMin Int?
   focus       String?
   isCustom    Boolean            @default(false)
+  programmeId String?
+  programme   Programme?         @relation(fields: [programmeId], references: [id])
+  weekNum     Int?
+  dayOfWeek   Int?
   exercises   ExerciseTemplate[]
   logs        SessionLog[]
   createdAt   DateTime           @default(now())
