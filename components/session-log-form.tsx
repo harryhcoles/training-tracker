@@ -118,6 +118,22 @@ export default function SessionLogForm({
   );
   const [avgHr, setAvgHr] = useState<string>(str(existing?.avgHr));
   const [avgPower, setAvgPower] = useState<string>(str(existing?.avgPower));
+  const [avgSpeedKmh, setAvgSpeedKmh] = useState<string>("");
+
+  const distanceNum = distanceKm.trim() === "" ? null : Number(distanceKm);
+  const durationNum =
+    durationActualMin.trim() === "" ? null : Number(durationActualMin);
+  const explicitSpeed =
+    avgSpeedKmh.trim() === "" ? null : Number(avgSpeedKmh);
+  const derivedSpeed =
+    distanceNum != null && durationNum != null && durationNum > 0
+      ? distanceNum / (durationNum / 60)
+      : null;
+  const effectiveSpeed = explicitSpeed ?? derivedSpeed;
+  const inGoalPace =
+    effectiveSpeed != null &&
+    effectiveSpeed >= 28 &&
+    effectiveSpeed <= 30;
 
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -174,11 +190,11 @@ export default function SessionLogForm({
         weekNum,
         sessionRpe: sessionRpe.trim() === "" ? null : Number(sessionRpe),
         notes: notes.trim() === "" ? null : notes,
-        durationActualMin:
-          durationActualMin.trim() === "" ? null : Number(durationActualMin),
-        distanceKm: distanceKm.trim() === "" ? null : Number(distanceKm),
+        durationActualMin: durationNum,
+        distanceKm: distanceNum,
         avgHr: avgHr.trim() === "" ? null : Number(avgHr),
         avgPower: avgPower.trim() === "" ? null : Number(avgPower),
+        avgSpeedKmh: effectiveSpeed,
         sets,
       };
 
@@ -222,10 +238,16 @@ export default function SessionLogForm({
               inputMode="decimal"
             />
             <LabeledInput
-              label="Avg HR"
+              label="Avg HR (bpm)"
               value={avgHr}
               onChange={setAvgHr}
               inputMode="numeric"
+            />
+            <LabeledInput
+              label="Avg speed (km/h)"
+              value={avgSpeedKmh}
+              onChange={setAvgSpeedKmh}
+              inputMode="decimal"
             />
             <LabeledInput
               label="Avg Power"
@@ -234,6 +256,23 @@ export default function SessionLogForm({
               inputMode="numeric"
             />
           </div>
+          {effectiveSpeed != null && (
+            <p
+              className={`text-xs ${
+                inGoalPace ? "text-emerald-700" : "text-stone-500"
+              }`}
+            >
+              {inGoalPace
+                ? `✓ Counts toward goal-pace HR trend (${effectiveSpeed.toFixed(1)} km/h)`
+                : `Avg speed ${effectiveSpeed.toFixed(1)} km/h — outside the 28-30 km/h goal-pace band`}
+            </p>
+          )}
+          {explicitSpeed == null && derivedSpeed == null && (
+            <p className="text-[11px] text-stone-400">
+              Enter avg speed (or distance + duration) to count toward goal-pace
+              trend.
+            </p>
+          )}
         </section>
       )}
 

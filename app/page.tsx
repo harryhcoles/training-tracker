@@ -4,30 +4,77 @@ import { prisma } from "@/lib/prisma";
 import { CATEGORY_META, DAY_NAMES, dayOfWeekMonFirst } from "@/lib/utils";
 import { getCurrentPhase, isDeloadWeek } from "@/lib/progression";
 import WeekTimeline from "@/components/week-timeline";
+import WeightSection from "@/components/weight-section";
+import HrAtGoalPaceChart from "@/components/hr-at-goal-pace-chart";
+import { isoWeekKey } from "@/lib/goal-pace";
 import {
   getBikeStats,
   getPersonalRecords,
   getRecentSessions,
-  getTotalVolume,
-  getWeeklyVolume,
 } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [userState, schedule, templates, logs] = await Promise.all([
-    prisma.userState.findUnique({ where: { id: 1 } }),
-    prisma.scheduleSlot.findMany({ orderBy: { dayOfWeek: "asc" } }),
-    prisma.sessionTemplate.findMany({
-      orderBy: [{ category: "asc" }, { phase: "asc" }, { name: "asc" }],
-    }),
-    prisma.sessionLog.findMany({
-      include: {
-        sets: true,
-        template: true,
-      },
-    }),
-  ]);
+  const sinceForWeight = new Date(Date.now() - 12 * 7 * 86400_000);
+  const sinceForHr = new Date(Date.now() - 12 * 7 * 86400_000);
+  const [userState, schedule, templates, logs, weightEntries, hrRides] =
+    await Promise.all([
+      prisma.userState.findUnique({ where: { id: 1 } }),
+      prisma.scheduleSlot.findMany({ orderBy: { dayOfWeek: "asc" } }),
+      prisma.sessionTemplate.findMany({
+        orderBy: [{ category: "asc" }, { phase: "asc" }, { name: "asc" }],
+      }),
+      prisma.sessionLog.findMany({
+        include: { sets: true, template: true },
+      }),
+      prisma.weightEntry.findMany({
+        where: { date: { gte: sinceForWeight } },
+        orderBy: { date: "asc" },
+        select: { id: true, date: true, weightKg: true },
+      }),
+      prisma.sessionLog.findMany({
+        where: {
+          loggedAt: { gte: sinceForHr },
+          hrAtGoalPace: { not: null },
+          timeInGoalPaceSec: { gte: 300 },
+        },
+        select: {
+          loggedAt: true,
+          hrAtGoalPace: true,
+          timeInGoalPaceSec: true,
+        },
+      }),
+    ]);
+
+  // Aggregate HR-at-goal-pace by ISO week (server-side; mirrors the
+  // /api/stats/hr-at-goal-pace endpoint logic).
+  const hrByWeek: Record<
+    string,
+    { sumWeightedHr: number; sumSec: number; rideCount: number }
+  > = {};
+  for (const r of hrRides) {
+    const key = isoWeekKey(r.loggedAt);
+    const b = (hrByWeek[key] ??= {
+      sumWeightedHr: 0,
+      sumSec: 0,
+      rideCount: 0,
+    });
+    const sec = r.timeInGoalPaceSec ?? 0;
+    const hr = r.hrAtGoalPace ?? 0;
+    b.sumWeightedHr += hr * sec;
+    b.sumSec += sec;
+    b.rideCount += 1;
+  }
+  const hrSeries = Object.entries(hrByWeek)
+    .map(([week, b]) => ({
+      week,
+      avgHr: b.sumSec > 0 ? Math.round(b.sumWeightedHr / b.sumSec) : null,
+      totalGoalPaceMin: Math.round(b.sumSec / 60),
+      rideCount: b.rideCount,
+      lowConfidence: b.sumSec < 15 * 60,
+    }))
+    .sort((a, b) => a.week.localeCompare(b.week));
 
   const today = dayOfWeekMonFirst();
   const currentWeek = userState?.currentWeek ?? 1;
@@ -56,15 +103,8 @@ export default async function Home() {
   const todayExtras = todayCategories.slice(1);
   const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
-  const totalVolume = getTotalVolume(logs);
   const bikeStats = getBikeStats(logs);
   const prs = getPersonalRecords(logs).slice(0, 5);
-  const weeklyVolume = getWeeklyVolume(logs, currentMeso);
-  const maxWeekVol = Math.max(1, ...weeklyVolume.map((w) => w.volume));
-  const sessionsDone = logs.filter(
-    (l) => l.mesoNum === currentMeso && l.weekNum === currentWeek,
-  ).length;
-  const topE1rm = prs[0]?.e1rm ?? 0;
   const recent = getRecentSessions(logs, 5);
 
   const medalColors = ["#fbbf24", "#94a3b8", "#b45309"];
@@ -297,63 +337,15 @@ export default async function Home() {
         })}
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
-        <StatCard label="Total volume" value={`${Math.round(totalVolume).toLocaleString()}`} unit="kg" />
-        <StatCard label="Bike km" value={`${Math.round(bikeStats.totalKm)}`} unit="km" />
-        <StatCard label="This week" value={`${sessionsDone}`} unit="sessions" />
-        <StatCard label="Top e1RM" value={`${Math.round(topE1rm)}`} unit="kg" />
-      </section>
+      <HrAtGoalPaceChart series={hrSeries} />
 
-      <section className="bg-white rounded-2xl p-5 shadow-sm">
-        <h3 className="text-xs uppercase tracking-widest text-stone-500 mb-3">
-          Weekly volume · Meso {currentMeso}
-        </h3>
-        <div className="flex items-end gap-1 h-28">
-          {weeklyVolume.map((w) => {
-            const h = (w.volume / maxWeekVol) * 100;
-            const isCurrent = w.week === currentWeek;
-            return (
-              <div key={w.week} className="flex-1 flex flex-col items-center">
-                <div
-                  className={`w-full rounded-t ${
-                    isCurrent ? "bg-amber-600" : "bg-stone-300"
-                  }`}
-                  style={{ height: `${Math.max(h, 2)}%` }}
-                />
-                <span className="text-[10px] text-stone-400 mt-1">{w.week}</span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {bikeStats.count > 0 && (
-        <section className="bg-white rounded-2xl p-5 shadow-sm">
-          <h3 className="text-xs uppercase tracking-widest text-stone-500 mb-3">
-            Bike stats
-          </h3>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="font-serif-display text-xl font-black">
-                {bikeStats.topSpeed ? bikeStats.topSpeed.toFixed(1) : "—"}
-              </p>
-              <p className="text-xs text-stone-500">top km/h</p>
-            </div>
-            <div>
-              <p className="font-serif-display text-xl font-black">
-                {Math.round(bikeStats.totalKm)}
-              </p>
-              <p className="text-xs text-stone-500">total km</p>
-            </div>
-            <div>
-              <p className="font-serif-display text-xl font-black">
-                {bikeStats.avgPower ? Math.round(bikeStats.avgPower) : "—"}
-              </p>
-              <p className="text-xs text-stone-500">avg W</p>
-            </div>
-          </div>
-        </section>
-      )}
+      <WeightSection
+        entries={weightEntries.map((e) => ({
+          id: e.id,
+          date: e.date.toISOString(),
+          weightKg: e.weightKg,
+        }))}
+      />
 
       {prs.length > 0 && (
         <section className="bg-white rounded-2xl p-5 shadow-sm">
@@ -461,24 +453,3 @@ export default async function Home() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-}) {
-  return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-widest text-stone-500">
-        {label}
-      </p>
-      <p className="font-serif-display text-2xl font-black mt-1">
-        {value}
-        <span className="text-stone-400 text-sm font-normal ml-1">{unit}</span>
-      </p>
-    </div>
-  );
-}
