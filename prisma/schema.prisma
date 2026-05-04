@@ -66,9 +66,20 @@ model SessionLog {
   distanceKm        Float?
   avgHr             Int?
   avgPower          Int?
+  avgSpeedKmh       Float?
+  hrAtGoalPace      Int?
+  timeInGoalPaceSec Int?
   stravaActivityId  BigInt?         @unique
   stravaStartDate   DateTime?
   sets              ExerciseSet[]
+}
+
+model WeightEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  weightKg  Float
+  notes     String?
+  createdAt DateTime @default(now())
 }
 
 model ExerciseSet {
