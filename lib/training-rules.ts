@@ -11,14 +11,48 @@ export type SessionWarning = {
 
 export type RecentLog = {
   loggedAt: Date;
-  template: { name: string; category: string };
+  template: { name: string; category: string; focus?: string | null };
 };
 
 const HARD_BIKE = ["speed", "conditioning"];
 const STRENGTH = ["legs", "chest", "back"];
+const HARD_BIKE_FOCUSES = new Set([
+  "VO2max",
+  "Sprint",
+  "Threshold",
+  "Anaerobic",
+  "Race-pace",
+  "Race",
+  "Sweetspot",
+]);
+const HARD_STRENGTH_NAME = /heavy|max|peak|power/i;
+
+// True if the session is high-intensity glycolytic / threshold work
+// that should be limited to ~2-3 sessions per week per polarised
+// training research (Seiler 2010, Esteve-Lanao 2007).
+export function isHardSession(s: {
+  category: string;
+  name: string;
+  focus?: string | null;
+}): boolean {
+  if (s.category === "conditioning") return true;
+  if (s.category === "speed") {
+    // Speed bike: hard unless explicitly recovery/openers/cadence
+    if (s.focus && !HARD_BIKE_FOCUSES.has(s.focus)) return false;
+    return true;
+  }
+  if (s.category === "endurance") {
+    // Endurance is generally easy unless it's a sweetspot session.
+    return s.focus === "Sweetspot";
+  }
+  if (STRENGTH.includes(s.category)) {
+    return HARD_STRENGTH_NAME.test(s.name);
+  }
+  return false;
+}
 
 export function getSessionWarnings(
-  currentSession: Pick<SessionTemplate, "category" | "name">,
+  currentSession: Pick<SessionTemplate, "category" | "name" | "focus">,
   todayDate: Date,
   recentLogs: RecentLog[],
   isEditingExisting: boolean,
@@ -74,12 +108,55 @@ export function getSessionWarnings(
     }
   }
 
+  // Rule C: Weekly intensity overload. If today's session is hard and
+  // 2+ hard sessions have already been logged in the last 7 days,
+  // adding this would push to 3+ hard sessions/week — above Seiler's
+  // ~2 hard sessions/week polarised guideline.
+  const todayIsHard = isHardSession({
+    category: currentCat,
+    name: currentSession.name,
+    focus: currentSession.focus,
+  });
+  if (todayIsHard) {
+    const sevenDaysAgo = todayDate.getTime() - 7 * 24 * 60 * 60 * 1000;
+    const hardLast7 = recentLogs.filter(
+      (l) =>
+        new Date(l.loggedAt).getTime() >= sevenDaysAgo &&
+        isHardSession({
+          category: l.template.category,
+          name: l.template.name,
+          focus: l.template.focus ?? null,
+        }),
+    );
+    if (hardLast7.length >= 2) {
+      warnings.push({
+        rule: "weekly-intensity-high",
+        severity: "warn",
+        message: `${hardLast7.length} hard sessions already in the last 7 days. This would make ${hardLast7.length + 1}. Polarised training data suggests ~80% easy / ~20% hard — consider easing this one or swapping for Z2 / recovery.`,
+        citation: "Seiler 2010, Polarized training; Esteve-Lanao 2007",
+      });
+    }
+  }
+
   // Stack: warn before info.
   warnings.sort((a, b) => {
     if (a.severity === b.severity) return 0;
     return a.severity === "warn" ? -1 : 1;
   });
   return warnings;
+}
+
+// Counts hard sessions in a given list of (category, name, focus)
+// tuples — useful for pre-flighting a week's schedule before any
+// session is logged.
+export function countHardSessions(
+  sessions: Array<{
+    category: string;
+    name: string;
+    focus?: string | null;
+  }>,
+): number {
+  return sessions.filter(isHardSession).length;
 }
 
 function isHeavyLegs(s: Pick<SessionTemplate, "category" | "name">): boolean {

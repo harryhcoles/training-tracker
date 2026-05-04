@@ -94,12 +94,16 @@ export default async function SessionPage({
     }
   }
 
-  // Recent logs for the warning system (last ~3 days, with template).
+  // Recent logs for the warning system. 7 days covers the
+  // weekly-intensity rule; the same-day and yesterday rules are still
+  // satisfied by the same query.
   const todayDate = new Date();
-  const threeDaysAgo = new Date(todayDate.getTime() - 3 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(todayDate.getTime() - 7 * 24 * 60 * 60 * 1000);
   const recentLogs = await prisma.sessionLog.findMany({
-    where: { loggedAt: { gte: threeDaysAgo } },
-    include: { template: { select: { name: true, category: true } } },
+    where: { loggedAt: { gte: sevenDaysAgo } },
+    include: {
+      template: { select: { name: true, category: true, focus: true } },
+    },
     orderBy: { loggedAt: "desc" },
   });
 

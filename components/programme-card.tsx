@@ -55,6 +55,30 @@ export default function ProgrammeCard({
     }
   }
 
+  async function resetToDefault() {
+    if (
+      !confirm(
+        `Reset every week to "${name}" defaults? Wipes all per-week overrides and restores the default schedule. Your logged sessions are preserved.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/programmes/${id}/reset-schedule`, {
+        method: "POST",
+      });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div
       className={`bg-white rounded-2xl p-5 shadow-sm border ${
@@ -106,16 +130,23 @@ export default function ProgrammeCard({
       {err && <p className="text-xs text-red-600 mt-3">{err}</p>}
 
       {isActive ? (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-stone-500">
-            ✓ Currently active
-          </p>
-          <Link
-            href="/schedule"
-            className="text-xs font-semibold text-amber-700 hover:text-amber-900"
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-stone-500">✓ Currently active</p>
+            <Link
+              href="/schedule"
+              className="text-xs font-semibold text-amber-700 hover:text-amber-900"
+            >
+              Edit default schedule →
+            </Link>
+          </div>
+          <button
+            onClick={resetToDefault}
+            disabled={busy}
+            className="w-full h-10 text-xs font-semibold rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 disabled:opacity-50"
           >
-            Edit default schedule →
-          </Link>
+            {busy ? "Resetting…" : "Reset all weeks to programme default"}
+          </button>
         </div>
       ) : (
         <button

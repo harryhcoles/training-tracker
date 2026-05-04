@@ -7,6 +7,7 @@ import WeekTimeline from "@/components/week-timeline";
 import WeightSection from "@/components/weight-section";
 import HrAtGoalPaceChart from "@/components/hr-at-goal-pace-chart";
 import { isoWeekKey } from "@/lib/goal-pace";
+import { isHardSession } from "@/lib/training-rules";
 import {
   getBikeStats,
   getPersonalRecords,
@@ -160,6 +161,28 @@ export default async function Home() {
   const todayExtras = todayCategories.slice(1);
   const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
+  // Pre-flight intensity check: classify each scheduled session in
+  // the current week, count hard ones. ≥3 fires the banner.
+  let scheduledHardCount = 0;
+  let scheduledTotalCount = 0;
+  for (let d = 0; d < 7; d++) {
+    for (const cat of slotsByDay[d]) {
+      const tmpl = templateForCategoryAndPhase(cat, d);
+      if (!tmpl) continue;
+      scheduledTotalCount++;
+      if (
+        isHardSession({
+          category: tmpl.category,
+          name: tmpl.name,
+          focus: tmpl.focus,
+        })
+      ) {
+        scheduledHardCount++;
+      }
+    }
+  }
+  const intensityHigh = scheduledHardCount >= 3;
+
   const bikeStats = getBikeStats(logs);
   const prs = getPersonalRecords(logs).slice(0, 5);
   const recent = getRecentSessions(logs, 5);
@@ -297,6 +320,24 @@ export default async function Home() {
             Edit week {currentWeek} →
           </Link>
         </div>
+        {intensityHigh && (
+          <div className="mb-3 bg-amber-50 border border-amber-300 rounded-xl p-3 flex gap-2">
+            <span className="text-amber-700 shrink-0">⚠</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-amber-900">
+                {scheduledHardCount} hard sessions scheduled this week
+                {scheduledTotalCount > 0
+                  ? ` (${scheduledHardCount}/${scheduledTotalCount} active days)`
+                  : ""}
+              </p>
+              <p className="text-[11px] text-amber-800 italic mt-0.5">
+                Polarised training (Seiler 2010) suggests ~80% easy / ~20%
+                hard. Drop one of the harder sessions to a Z2 or recovery if
+                you start feeling cooked.
+              </p>
+            </div>
+          </div>
+        )}
         <ul className="space-y-1.5">
           {Array.from({ length: 7 }, (_, d) => {
             const cats = slotsByDay[d];
