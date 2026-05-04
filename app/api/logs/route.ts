@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { computeAvgSpeed, computeGoalPaceFields } from "@/lib/goal-pace";
 
 type IncomingSet = {
   exerciseName: string;
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       distanceKm,
       avgHr,
       avgPower,
+      avgSpeedKmh: incomingSpeed,
       sets,
     } = data as {
       sessionTemplateId: string;
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
       distanceKm: number | null;
       avgHr: number | null;
       avgPower: number | null;
+      avgSpeedKmh?: number | null;
       sets: IncomingSet[] | null;
     };
 
@@ -64,9 +67,17 @@ export async function POST(request: Request) {
       rpe: s.rpe,
     }));
 
-    // Upsert key is (template, today's date) so logging the same template
-    // twice in a week (e.g. Bench on Wed and again on Sat) creates two
-    // separate logs. Re-saving the same day's log just updates it.
+    // Goal-pace fields: prefer the user-supplied avgSpeedKmh; otherwise
+    // derive from distance/duration. Then compute hrAtGoalPace +
+    // timeInGoalPaceSec only if speed is in the 28-30 km/h band.
+    const avgSpeedKmh =
+      incomingSpeed ?? computeAvgSpeed(distanceKm, durationActualMin);
+    const { hrAtGoalPace, timeInGoalPaceSec } = computeGoalPaceFields({
+      avgHr,
+      avgSpeedKmh,
+      durationMin: durationActualMin,
+    });
+
     const now = new Date();
     const existing = await prisma.sessionLog.findFirst({
       where: {
@@ -88,6 +99,9 @@ export async function POST(request: Request) {
           distanceKm,
           avgHr,
           avgPower,
+          avgSpeedKmh,
+          hrAtGoalPace,
+          timeInGoalPaceSec,
           sets: { create: setRows },
         },
         include: { sets: true },
@@ -106,6 +120,9 @@ export async function POST(request: Request) {
         distanceKm,
         avgHr,
         avgPower,
+        avgSpeedKmh,
+        hrAtGoalPace,
+        timeInGoalPaceSec,
         sets: { create: setRows },
       },
       include: { sets: true },
