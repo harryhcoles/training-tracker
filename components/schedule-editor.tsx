@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CATEGORY_META, DAY_NAMES } from "@/lib/utils";
 
 type Slot = { dayOfWeek: number; categoryId: string };
+type Mode = "default" | "week";
 
 const CATEGORIES: Array<{ id: string; label: string }> = [
   { id: "legs", label: "Legs" },
@@ -17,10 +19,17 @@ const CATEGORIES: Array<{ id: string; label: string }> = [
 export default function ScheduleEditor({
   initial,
   today,
+  mode = "default",
+  mesoNum = 0,
+  weekNum = 0,
 }: {
   initial: Slot[];
   today: number;
+  mode?: Mode;
+  mesoNum?: number;
+  weekNum?: number;
 }) {
+  const router = useRouter();
   const [slotsByDay, setSlotsByDay] = useState<Record<number, Set<string>>>(
     () => {
       const map: Record<number, Set<string>> = {};
@@ -46,10 +55,15 @@ export default function ScheduleEditor({
       return next;
     });
     try {
-      const res = await fetch("/api/schedule", {
+      const url = mode === "week" ? "/api/schedule/week" : "/api/schedule";
+      const body =
+        mode === "week"
+          ? { mesoNum, weekNum, dayOfWeek, categoryId }
+          : { dayOfWeek, categoryId };
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dayOfWeek, categoryId }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -82,6 +96,13 @@ export default function ScheduleEditor({
         Tap a category to add it to that day. Tap again to remove. Days with no
         categories assigned are rest days.
       </p>
+      {mode === "week" && (
+        <ResetButton
+          mesoNum={mesoNum}
+          weekNum={weekNum}
+          onResetDone={() => router.refresh()}
+        />
+      )}
       {Array.from({ length: 7 }, (_, d) => d).map((d) => {
         const slotIds = Array.from(slotsByDay[d] ?? new Set<string>());
         const isToday = d === today;
@@ -140,6 +161,59 @@ export default function ScheduleEditor({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ResetButton({
+  mesoNum,
+  weekNum,
+  onResetDone,
+}: {
+  mesoNum: number;
+  weekNum: number;
+  onResetDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function reset() {
+    if (
+      !confirm(
+        `Reset week ${weekNum} back to the programme default? Any per-week edits for this week will be lost.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(
+        `/api/schedule/week?meso=${mesoNum}&week=${weekNum}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      onResetDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="text-right">
+      <button
+        onClick={reset}
+        disabled={busy}
+        className="text-xs font-semibold text-stone-500 hover:text-stone-800 disabled:opacity-40"
+      >
+        {busy ? "Resetting…" : "Reset week to default"}
+      </button>
+      {err && <p className="text-xs text-red-600 mt-1">{err}</p>}
     </div>
   );
 }

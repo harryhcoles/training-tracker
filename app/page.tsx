@@ -18,34 +18,55 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const sinceForWeight = new Date(Date.now() - 12 * 7 * 86400_000);
   const sinceForHr = new Date(Date.now() - 12 * 7 * 86400_000);
-  const [userState, schedule, templates, logs, weightEntries, hrRides] =
-    await Promise.all([
-      prisma.userState.findUnique({ where: { id: 1 } }),
-      prisma.scheduleSlot.findMany({ orderBy: { dayOfWeek: "asc" } }),
-      prisma.sessionTemplate.findMany({
-        orderBy: [{ category: "asc" }, { phase: "asc" }, { name: "asc" }],
-      }),
-      prisma.sessionLog.findMany({
-        include: { sets: true, template: true },
-      }),
-      prisma.weightEntry.findMany({
-        where: { date: { gte: sinceForWeight } },
-        orderBy: { date: "asc" },
-        select: { id: true, date: true, weightKg: true },
-      }),
-      prisma.sessionLog.findMany({
-        where: {
-          loggedAt: { gte: sinceForHr },
-          hrAtGoalPace: { not: null },
-          timeInGoalPaceSec: { gte: 300 },
-        },
-        select: {
-          loggedAt: true,
-          hrAtGoalPace: true,
-          timeInGoalPaceSec: true,
-        },
-      }),
-    ]);
+  const userStateForLookup = await prisma.userState.findUnique({
+    where: { id: 1 },
+  });
+  const lookupMeso = userStateForLookup?.currentMesoNum ?? 1;
+  const lookupWeek = userStateForLookup?.currentWeek ?? 1;
+  const [
+    userState,
+    defaultSchedule,
+    weekOverrides,
+    templates,
+    logs,
+    weightEntries,
+    hrRides,
+  ] = await Promise.all([
+    Promise.resolve(userStateForLookup),
+    prisma.scheduleSlot.findMany({ orderBy: { dayOfWeek: "asc" } }),
+    prisma.weekScheduleSlot.findMany({
+      where: { mesoNum: lookupMeso, weekNum: lookupWeek },
+      orderBy: { dayOfWeek: "asc" },
+    }),
+    prisma.sessionTemplate.findMany({
+      orderBy: [{ category: "asc" }, { phase: "asc" }, { name: "asc" }],
+    }),
+    prisma.sessionLog.findMany({
+      include: { sets: true, template: true },
+    }),
+    prisma.weightEntry.findMany({
+      where: { date: { gte: sinceForWeight } },
+      orderBy: { date: "asc" },
+      select: { id: true, date: true, weightKg: true },
+    }),
+    prisma.sessionLog.findMany({
+      where: {
+        loggedAt: { gte: sinceForHr },
+        hrAtGoalPace: { not: null },
+        timeInGoalPaceSec: { gte: 300 },
+      },
+      select: {
+        loggedAt: true,
+        hrAtGoalPace: true,
+        timeInGoalPaceSec: true,
+      },
+    }),
+  ]);
+
+  // The "schedule" used by the rest of the home page: prefer per-week
+  // overrides for the current (mesoNum, weekNum); fall back to defaults.
+  const schedule = weekOverrides.length > 0 ? weekOverrides : defaultSchedule;
+  const isWeekOverridden = weekOverrides.length > 0;
 
   // Aggregate HR-at-goal-pace by ISO week (server-side; mirrors the
   // /api/stats/hr-at-goal-pace endpoint logic).
@@ -263,12 +284,17 @@ export default async function Home() {
         <div className="flex items-baseline justify-between mb-3">
           <h3 className="text-xs uppercase tracking-widest text-stone-500">
             This week
+            {isWeekOverridden && (
+              <span className="ml-2 text-[10px] font-bold text-amber-700">
+                · custom
+              </span>
+            )}
           </h3>
           <Link
-            href="/schedule"
+            href={`/schedule?meso=${currentMeso}&week=${currentWeek}`}
             className="text-xs font-semibold text-amber-700 hover:text-amber-900"
           >
-            Edit schedule →
+            Edit week {currentWeek} →
           </Link>
         </div>
         <ul className="space-y-1.5">

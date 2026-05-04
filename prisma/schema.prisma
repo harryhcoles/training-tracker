@@ -50,6 +50,21 @@ model ScheduleSlot {
   @@unique([dayOfWeek, categoryId])
 }
 
+// Per-week overrides. If any rows exist for a given (mesoNum, weekNum)
+// they are the canonical schedule for that week — defaults are
+// ignored for that week. Use absence of rows for a week to mean
+// "no override applied; fall back to ScheduleSlot defaults".
+model WeekScheduleSlot {
+  id         Int    @id @default(autoincrement())
+  mesoNum    Int
+  weekNum    Int
+  dayOfWeek  Int
+  categoryId String
+
+  @@unique([mesoNum, weekNum, dayOfWeek, categoryId])
+  @@index([mesoNum, weekNum])
+}
+
 model SessionTemplate {
   id          String             @id @default(cuid())
   category    String

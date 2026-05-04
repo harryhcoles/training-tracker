@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -105,9 +106,17 @@ export default function ProgrammeCard({
       {err && <p className="text-xs text-red-600 mt-3">{err}</p>}
 
       {isActive ? (
-        <p className="text-xs text-stone-500 mt-4">
-          ✓ This programme is currently active.
-        </p>
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-xs text-stone-500">
+            ✓ Currently active
+          </p>
+          <Link
+            href="/schedule"
+            className="text-xs font-semibold text-amber-700 hover:text-amber-900"
+          >
+            Edit default schedule →
+          </Link>
+        </div>
       ) : (
         <button
           onClick={activate}
