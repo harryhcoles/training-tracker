@@ -8,10 +8,12 @@ export default function WeekTimeline({
   currentWeek,
   currentMeso,
   totalWeeks = 12,
+  isCycleMode = false,
 }: {
   currentWeek: number;
   currentMeso: number;
   totalWeeks?: number;
+  isCycleMode?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -50,8 +52,9 @@ export default function WeekTimeline({
     <section className="bg-white rounded-2xl p-5 shadow-sm">
       <div className="flex items-baseline justify-between">
         <p className="text-xs uppercase tracking-widest text-stone-500">
-          Week {displayWeek}/{totalWeeks} · {displayPhase}
-          {displayDeload && (
+          {isCycleMode ? "Cycle" : "Week"} {displayWeek}/{totalWeeks}
+          {!isCycleMode && ` · ${displayPhase}`}
+          {!isCycleMode && displayDeload && (
             <span className="ml-2 text-amber-700 font-bold">· Deload</span>
           )}
         </p>

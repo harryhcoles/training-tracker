@@ -49,6 +49,7 @@ export async function POST(
           currentMesoNum: userState.currentMesoNum + 1,
           currentWeek: 1,
           programmeStart: new Date(),
+          cycleStartedAt: new Date(),
         },
       }),
     ]);

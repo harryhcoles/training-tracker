@@ -22,19 +22,26 @@ export default function ScheduleEditor({
   mode = "default",
   mesoNum = 0,
   weekNum = 0,
+  cycleLength = 7,
 }: {
   initial: Slot[];
   today: number;
   mode?: Mode;
   mesoNum?: number;
   weekNum?: number;
+  cycleLength?: number;
 }) {
   const router = useRouter();
+  const isCycleMode = cycleLength !== 7;
   const [slotsByDay, setSlotsByDay] = useState<Record<number, Set<string>>>(
     () => {
       const map: Record<number, Set<string>> = {};
-      for (let d = 0; d < 7; d++) map[d] = new Set();
-      for (const s of initial) map[s.dayOfWeek].add(s.categoryId);
+      for (let d = 0; d < cycleLength; d++) map[d] = new Set();
+      for (const s of initial) {
+        if (s.dayOfWeek >= 0 && s.dayOfWeek < cycleLength) {
+          map[s.dayOfWeek].add(s.categoryId);
+        }
+      }
       return map;
     },
   );
@@ -103,9 +110,10 @@ export default function ScheduleEditor({
           onResetDone={() => router.refresh()}
         />
       )}
-      {Array.from({ length: 7 }, (_, d) => d).map((d) => {
+      {Array.from({ length: cycleLength }, (_, d) => d).map((d) => {
         const slotIds = Array.from(slotsByDay[d] ?? new Set<string>());
         const isToday = d === today;
+        const label = isCycleMode ? `D${d + 1}` : (DAY_NAMES[d] ?? `D${d + 1}`);
         return (
           <div
             key={d}
@@ -116,7 +124,7 @@ export default function ScheduleEditor({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-stone-900">
-                  {DAY_NAMES[d]}
+                  {label}
                 </h3>
                 {isToday && (
                   <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">

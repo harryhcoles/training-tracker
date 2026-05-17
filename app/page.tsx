@@ -98,21 +98,42 @@ export default async function Home() {
     }))
     .sort((a, b) => a.week.localeCompare(b.week));
 
-  const today = dayOfWeekMonFirst();
+  const calendarToday = dayOfWeekMonFirst();
+  const dayLabel = (d: number, mode: "cycle" | "week") =>
+    mode === "cycle" ? `D${d + 1}` : (DAY_NAMES[d] ?? `D${d + 1}`);
   const currentWeek = userState?.currentWeek ?? 1;
   const currentMeso = userState?.currentMesoNum ?? 1;
   const currentPhase = getCurrentPhase(currentWeek);
   const onDeload = isDeloadWeek(currentWeek);
   const activeProgrammeId = userState?.activeProgrammeId ?? null;
 
-  // Look up the active programme's name for the header. Cheap separate
-  // query — could also fold it into the Promise.all but readability wins.
+  // Look up the active programme's name + cycleLength for the header
+  // and for deciding whether to render a 7-day calendar or an N-day
+  // cycle view.
   const activeProgramme = activeProgrammeId
     ? await prisma.programme.findUnique({
         where: { id: activeProgrammeId },
-        select: { name: true, totalWeeks: true },
+        select: { name: true, totalWeeks: true, cycleLength: true },
       })
     : null;
+
+  const cycleLength = activeProgramme?.cycleLength ?? 7;
+  const isCycleMode = cycleLength !== 7;
+
+  // For cycle-mode programmes, "today" is a cycle-day index 0..(cycleLength-1)
+  // derived from the calendar date elapsed since cycleStartedAt. For
+  // 7-day programmes, "today" is the standard Mon-first calendar index.
+  function daysBetween(a: Date, b: Date) {
+    const ms = b.getTime() - a.getTime();
+    return Math.floor(ms / (24 * 60 * 60 * 1000));
+  }
+  let today = calendarToday;
+  let cycleStartedAt: Date | null = null;
+  if (isCycleMode && userState?.cycleStartedAt) {
+    cycleStartedAt = userState.cycleStartedAt;
+    const elapsed = Math.max(0, daysBetween(cycleStartedAt, new Date()));
+    today = ((elapsed % cycleLength) + cycleLength) % cycleLength;
+  }
 
   // Picker: when a programme is active, prefer a programme template
   // matching (programmeId, weekNum, dayOfWeek, category). Otherwise
@@ -150,23 +171,28 @@ export default async function Home() {
     );
   }
 
-  // Multiple slots per day are now supported.
+  // Multiple slots per day are now supported. For cycle-mode programmes
+  // the "day" index spans 0..(cycleLength-1) rather than 0..6.
   const slotsByDay: Record<number, string[]> = {};
-  for (let d = 0; d < 7; d++) slotsByDay[d] = [];
-  for (const s of schedule) slotsByDay[s.dayOfWeek].push(s.categoryId);
+  for (let d = 0; d < cycleLength; d++) slotsByDay[d] = [];
+  for (const s of schedule) {
+    if (s.dayOfWeek >= 0 && s.dayOfWeek < cycleLength) {
+      slotsByDay[s.dayOfWeek].push(s.categoryId);
+    }
+  }
 
-  const todayCategories = slotsByDay[today];
+  const todayCategories = slotsByDay[today] ?? [];
   const todayPrimary = todayCategories[0] ?? null;
   const todayTemplate = templateForCategoryAndPhase(todayPrimary, today);
   const todayExtras = todayCategories.slice(1);
   const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
   // Pre-flight intensity check: classify each scheduled session in
-  // the current week, count hard ones. ≥3 fires the banner.
+  // the current week / cycle, count hard ones. ≥3 fires the banner.
   let scheduledHardCount = 0;
   let scheduledTotalCount = 0;
-  for (let d = 0; d < 7; d++) {
-    for (const cat of slotsByDay[d]) {
+  for (let d = 0; d < cycleLength; d++) {
+    for (const cat of slotsByDay[d] ?? []) {
       const tmpl = templateForCategoryAndPhase(cat, d);
       if (!tmpl) continue;
       scheduledTotalCount++;
@@ -237,7 +263,7 @@ export default async function Home() {
       >
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest opacity-80">
-            {DAY_NAMES[today]} · Today
+            {dayLabel(today, isCycleMode ? "cycle" : "week")} · Today
           </p>
           {onDeload && (
             <span className="text-[10px] uppercase font-bold tracking-widest bg-white/30 rounded px-2 py-0.5">
@@ -301,6 +327,7 @@ export default async function Home() {
         currentWeek={currentWeek}
         currentMeso={currentMeso}
         totalWeeks={activeProgramme?.totalWeeks ?? 12}
+        isCycleMode={isCycleMode}
       />
 
       <section className="bg-white rounded-2xl p-5 shadow-sm">
@@ -317,7 +344,7 @@ export default async function Home() {
             href={`/schedule?meso=${currentMeso}&week=${currentWeek}`}
             className="text-xs font-semibold text-amber-700 hover:text-amber-900"
           >
-            Edit week {currentWeek} →
+            Edit {isCycleMode ? "cycle" : "week"} {currentWeek} →
           </Link>
         </div>
         {intensityHigh && (
@@ -325,7 +352,7 @@ export default async function Home() {
             <span className="text-amber-700 shrink-0">⚠</span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-amber-900">
-                {scheduledHardCount} hard sessions scheduled this week
+                {scheduledHardCount} hard sessions scheduled this {isCycleMode ? "cycle" : "week"}
                 {scheduledTotalCount > 0
                   ? ` (${scheduledHardCount}/${scheduledTotalCount} active days)`
                   : ""}
@@ -339,9 +366,10 @@ export default async function Home() {
           </div>
         )}
         <ul className="space-y-1.5">
-          {Array.from({ length: 7 }, (_, d) => {
-            const cats = slotsByDay[d];
+          {Array.from({ length: cycleLength }, (_, d) => {
+            const cats = slotsByDay[d] ?? [];
             const isToday = d === today;
+            const label = dayLabel(d, isCycleMode ? "cycle" : "week");
             if (cats.length === 0) {
               return (
                 <li key={d}>
@@ -355,7 +383,7 @@ export default async function Home() {
                         isToday ? "text-amber-700" : "text-stone-400"
                       }`}
                     >
-                      {DAY_NAMES[d]}
+                      {label}
                     </span>
                     <span
                       className="w-2 h-2 rounded-full shrink-0"
@@ -374,7 +402,7 @@ export default async function Home() {
                   {cats.map((cat, idx) => {
                     const tmpl = templateForCategoryAndPhase(cat, d);
                     const m = CATEGORY_META[cat];
-                    const label = tmpl ? tmpl.name : (m?.label ?? cat);
+                    const lineLabel = tmpl ? tmpl.name : (m?.label ?? cat);
                     const content = (
                       <div className="flex items-center gap-3 px-3 py-2">
                         <span
@@ -384,14 +412,14 @@ export default async function Home() {
                               : "text-stone-400"
                           }`}
                         >
-                          {idx === 0 ? DAY_NAMES[d] : ""}
+                          {idx === 0 ? label : ""}
                         </span>
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
                           style={{ background: m?.color ?? "#d6d3d1" }}
                         />
                         <span className="flex-1 min-w-0 truncate text-sm text-stone-700">
-                          {label}
+                          {lineLabel}
                         </span>
                       </div>
                     );

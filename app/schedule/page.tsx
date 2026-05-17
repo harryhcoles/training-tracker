@@ -12,7 +12,27 @@ export default async function SchedulePage({
 }) {
   const params = await searchParams;
   const userState = await prisma.userState.findUnique({ where: { id: 1 } });
-  const today = dayOfWeekMonFirst();
+  const activeProgramme = userState?.activeProgrammeId
+    ? await prisma.programme.findUnique({
+        where: { id: userState.activeProgrammeId },
+        select: { cycleLength: true },
+      })
+    : null;
+  const cycleLength = activeProgramme?.cycleLength ?? 7;
+  const isCycleMode = cycleLength !== 7;
+
+  // For cycle-mode programmes, "today" is the current cycleDay; for
+  // 7-day programmes it's the standard Mon-first calendar index.
+  let today = dayOfWeekMonFirst();
+  if (isCycleMode && userState?.cycleStartedAt) {
+    const elapsed = Math.max(
+      0,
+      Math.floor(
+        (Date.now() - userState.cycleStartedAt.getTime()) / (24 * 60 * 60 * 1000),
+      ),
+    );
+    today = ((elapsed % cycleLength) + cycleLength) % cycleLength;
+  }
 
   const requestedWeek = params.week ? Number(params.week) : undefined;
   const requestedMeso = params.meso ? Number(params.meso) : undefined;
@@ -74,21 +94,22 @@ export default async function SchedulePage({
       <header>
         <p className="text-xs uppercase tracking-[0.2em] text-amber-700">
           {isWeekMode
-            ? `Week ${weekNum} · meso ${mesoNum}`
+            ? `${isCycleMode ? "Cycle" : "Week"} ${weekNum} · meso ${mesoNum}`
             : "Programme default"}
         </p>
         <h1 className="font-serif-display text-3xl font-black mt-1">
-          {isWeekMode ? "Edit week" : "Edit default schedule"}
+          {isWeekMode
+            ? `Edit ${isCycleMode ? "cycle" : "week"}`
+            : "Edit default schedule"}
         </h1>
         <p className="text-xs text-stone-500 mt-2">
           {isWeekMode
-            ? "Changes apply to this week only. Other weeks keep the programme default."
-            : "Changes apply to every week of the programme by default. Per-week edits override these."}
+            ? `Changes apply to this ${isCycleMode ? "cycle" : "week"} only. Other ${isCycleMode ? "cycles" : "weeks"} keep the programme default.`
+            : `Changes apply to every ${isCycleMode ? "cycle" : "week"} of the programme by default. Per-${isCycleMode ? "cycle" : "week"} edits override these.`}
         </p>
         {isWeekMode && usingDefault && (
           <p className="text-[11px] text-amber-700 mt-1">
-            This week is following the default. Toggling any category creates
-            a week-specific override.
+            This {isCycleMode ? "cycle" : "week"} is following the default. Toggling any category creates a {isCycleMode ? "cycle" : "week"}-specific override.
           </p>
         )}
       </header>
@@ -99,6 +120,7 @@ export default async function SchedulePage({
         mode={isWeekMode ? "week" : "default"}
         mesoNum={mesoNum}
         weekNum={weekNum}
+        cycleLength={cycleLength}
       />
 
       {isWeekMode && !usingDefault && (

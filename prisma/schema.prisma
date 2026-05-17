@@ -12,6 +12,7 @@ model UserState {
   currentMesoNum    Int        @default(1)
   currentWeek       Int        @default(1)
   programmeStart    DateTime   @default(now())
+  cycleStartedAt    DateTime?
   squatTarget       Int        @default(120)
   benchTarget       Int        @default(75)
   deadliftTarget    Int        @default(120)
@@ -25,6 +26,7 @@ model Programme {
   name          String           @unique
   description   String?
   totalWeeks    Int              @default(12)
+  cycleLength   Int              @default(7)
   isCustom      Boolean          @default(false)
   scheduleSlots ProgrammeSlot[]
   templates     SessionTemplate[]
