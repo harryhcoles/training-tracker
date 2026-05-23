@@ -27,46 +27,98 @@ function roundTo2_5(weight: number): number {
   return Math.round(weight / 2.5) * 2.5;
 }
 
-// Autoregulation by RPE — based on Zhang et al. 2025 NMA showing
-// RPE-driven progression is second only to APRE for max strength gains.
-// TODO: when user hits target consistently across 2+ sessions, prompt
-// to bump the lift target rather than capping suggestions.
+// Epley 1RM. Returns an estimate of the user's 1-rep max from any
+// set (weight × reps at given RPE). Cheaply useful for scaling.
+function epley1rm(weight: number, reps: number): number {
+  return weight * (1 + reps / 30);
+}
+
+function inverseEpley(e1rm: number, reps: number): number {
+  return e1rm / (1 + reps / 30);
+}
+
+// Best-evidence picker for suggesting today's load. Caller supplies:
+//   - prevSameReps: the most recent prior top set at the SAME rep count
+//     as today's prescription. Strongest evidence — used verbatim with
+//     RPE adjustment.
+//   - prevAnyReps: the most recent prior top set at any rep count.
+//     Used as fallback — we estimate 1RM from it and back-compute the
+//     load for today's target rep count via Epley.
+//   - targetReps: today's prescribed rep count (per the exercise
+//     template). Required for scaling.
+//
+// Behaviour:
+//   - Deload week → 70% of the same-rep-count baseline (or scaled
+//     baseline if only any-rep evidence exists).
+//   - prevSameReps with RPE → apply the existing RPE rule (+2.5 / 0 / -2.5).
+//   - prevSameReps without RPE → "match last session".
+//   - Only prevAnyReps (different rep count) → estimate e1RM, back-
+//     compute for targetReps, then apply RPE rule centred on that scaled
+//     baseline. Note flagged in `reason` so the user knows it's scaled.
+//   - No prior data → null.
+//
+// Zhang et al. 2025 NMA — RPE-driven autoregulation. Epley 1RM holds
+// well enough across 2-12 rep ranges for load-scaling within a phase.
 export function getSuggestedTarget(
-  prevTopSet: PrevTopSet | null,
+  prevSameReps: PrevTopSet | null,
+  prevAnyReps: PrevTopSet | null,
+  targetReps: number | null = null,
   liftTarget: number | null = null,
   isDeload: boolean = false,
 ): SuggestedTarget | null {
-  if (!prevTopSet || prevTopSet.weightKg == null) return null;
-  const prevWeight = prevTopSet.weightKg;
-  const prevRpe = prevTopSet.rpe;
+  // Resolve the baseline weight + a reason fragment describing scaling.
+  let baselineWeight: number | null = null;
+  let baselineRpe: number | null = null;
+  let scalingNote = "";
 
-  // Deload override: take ~70% of last session, regardless of RPE.
+  if (prevSameReps && prevSameReps.weightKg != null) {
+    baselineWeight = prevSameReps.weightKg;
+    baselineRpe = prevSameReps.rpe;
+  } else if (
+    prevAnyReps &&
+    prevAnyReps.weightKg != null &&
+    prevAnyReps.reps != null &&
+    targetReps != null
+  ) {
+    const e1rm = epley1rm(prevAnyReps.weightKg, prevAnyReps.reps);
+    baselineWeight = inverseEpley(e1rm, targetReps);
+    baselineRpe = prevAnyReps.rpe;
+    scalingNote = ` (scaled from ${prevAnyReps.weightKg}kg × ${prevAnyReps.reps})`;
+  } else if (prevAnyReps && prevAnyReps.weightKg != null) {
+    // Have a previous set but no target reps to scale to — use verbatim.
+    baselineWeight = prevAnyReps.weightKg;
+    baselineRpe = prevAnyReps.rpe;
+  }
+
+  if (baselineWeight == null) return null;
+
+  // Deload override.
   if (isDeload) {
-    const w = roundTo2_5(prevWeight * 0.7);
+    const w = roundTo2_5(baselineWeight * 0.7);
     return {
       weight: Math.max(w, 0),
-      reason: "Deload week — 70% of last session",
+      reason: `Deload — 70% of last session${scalingNote}`,
     };
   }
 
   let weight: number;
   let reason: string;
 
-  if (prevRpe == null) {
-    weight = prevWeight;
-    reason = "Match last session";
-  } else if (prevRpe <= 7) {
-    weight = prevWeight + 2.5;
-    reason = "Last set RPE ≤7 — add 2.5kg";
-  } else if (prevRpe >= 8 && prevRpe <= 9) {
-    weight = prevWeight;
-    reason = "Last set RPE 8-9 — maintain";
-  } else if (prevRpe === 10) {
-    weight = Math.max(prevWeight - 2.5, 0);
-    reason = "Last set RPE 10 — back off 2.5kg";
+  if (baselineRpe == null) {
+    weight = baselineWeight;
+    reason = `Match last session${scalingNote}`;
+  } else if (baselineRpe <= 7) {
+    weight = baselineWeight + 2.5;
+    reason = `Last set RPE ≤7 — add 2.5kg${scalingNote}`;
+  } else if (baselineRpe >= 8 && baselineRpe <= 9) {
+    weight = baselineWeight;
+    reason = `Last set RPE 8-9 — maintain${scalingNote}`;
+  } else if (baselineRpe === 10) {
+    weight = Math.max(baselineWeight - 2.5, 0);
+    reason = `Last set RPE 10 — back off 2.5kg${scalingNote}`;
   } else {
-    weight = prevWeight;
-    reason = "Match last session";
+    weight = baselineWeight;
+    reason = `Match last session${scalingNote}`;
   }
 
   weight = roundTo2_5(weight);

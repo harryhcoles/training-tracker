@@ -51,11 +51,17 @@ export default async function SessionPage({
     include: { sets: { orderBy: { setNumber: "asc" } } },
   });
 
-  // Find previous top set per exercise (heaviest set in the most recent
-  // logged session for that exercise, excluding the log we're currently
-  // editing). Single query, ordered so first occurrence per exerciseName
-  // is the heaviest set in their most recent log.
+  // Previous top sets per exercise. We collect TWO entries per exercise:
+  //   - prevSameReps: most recent set at the exercise's prescribed rep
+  //     count (used verbatim with RPE rule)
+  //   - prevAnyReps: most recent set at any rep count (used for Epley
+  //     scaling when no same-rep history exists)
+  // The query orders by log date desc + weight desc, so the first
+  // occurrence per (exercise, reps) is the heaviest set in the most
+  // recent log at that rep count.
   const exerciseNames = template.exercises.map((e) => e.name);
+  // Picker-facing PrevTopSet shown in the UI — uses same-rep evidence
+  // when available, else any-rep evidence (without scaling).
   const previousTopSets: Record<string, PrevTopSet> = {};
   const suggestions: Record<string, SuggestedTarget> = {};
   const liftTargets: Record<string, number | null> = {};
@@ -71,25 +77,51 @@ export default async function SessionPage({
       orderBy: [{ log: { loggedAt: "desc" } }, { weightKg: "desc" }],
     });
 
+    // Build (exerciseName, reps) → first occurrence map for same-rep
+    // lookup, plus (exerciseName) → first occurrence for any-rep.
+    const sameRepBest: Record<string, PrevTopSet> = {};
+    const anyRepBest: Record<string, PrevTopSet> = {};
     for (const s of allSets) {
-      if (previousTopSets[s.exerciseName]) continue;
-      previousTopSets[s.exerciseName] = {
-        weightKg: s.weightKg,
-        reps: s.reps,
-        rpe: s.rpe,
-      };
+      const anyKey = s.exerciseName;
+      if (!anyRepBest[anyKey]) {
+        anyRepBest[anyKey] = {
+          weightKg: s.weightKg,
+          reps: s.reps,
+          rpe: s.rpe,
+        };
+      }
+      if (s.reps != null) {
+        const sameKey = `${s.exerciseName}::${s.reps}`;
+        if (!sameRepBest[sameKey]) {
+          sameRepBest[sameKey] = {
+            weightKg: s.weightKg,
+            reps: s.reps,
+            rpe: s.rpe,
+          };
+        }
+      }
     }
 
     if (userState) {
       const deload = isDeloadWeek(weekNum);
-      for (const name of exerciseNames) {
-        liftTargets[name] = liftTargetForExercise(name, userState);
+      for (const ex of template.exercises) {
+        liftTargets[ex.name] = liftTargetForExercise(ex.name, userState);
+        const targetReps = ex.reps;
+        const sameKey = targetReps != null ? `${ex.name}::${targetReps}` : null;
+        const prevSame = sameKey ? (sameRepBest[sameKey] ?? null) : null;
+        const prevAny = anyRepBest[ex.name] ?? null;
+        // For the "Last:" display, show same-rep evidence if available
+        // (most truthful), else any-rep evidence.
+        const displayPrev = prevSame ?? prevAny;
+        if (displayPrev) previousTopSets[ex.name] = displayPrev;
         const sug = getSuggestedTarget(
-          previousTopSets[name] ?? null,
-          liftTargets[name],
+          prevSame,
+          prevAny,
+          targetReps,
+          liftTargets[ex.name],
           deload,
         );
-        if (sug) suggestions[name] = sug;
+        if (sug) suggestions[ex.name] = sug;
       }
     }
   }
