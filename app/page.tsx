@@ -140,20 +140,60 @@ export default async function Home() {
   // (or if no programme template exists for that slot — e.g. strength
   // categories under a bike-only programme), fall back to the existing
   // phase-based picker.
+  //
+  // For cycle-mode programmes whose schedule has been reshuffled to
+  // match calendar constraints (long ride Sat/Sun, conditioning M/W/F),
+  // template.dayOfWeek no longer corresponds to the slot's calendar
+  // position. In that case we pick by (programme, cycle, category)
+  // ignoring dayOfWeek, and disambiguate the 'back' category — which
+  // has two templates per cycle (deadlift + OHP+pull) — by checking
+  // whether the slot is a double day (back + speed → OHP+pull) or solo
+  // (just back → deadlift).
   function templateForCategoryAndPhase(
     cat: string | null | undefined,
     forDayOfWeek: number,
+    slotDayCats: string[] = [],
   ) {
     if (!cat) return null;
     if (activeProgrammeId) {
-      const programmeMatch = templates.find(
-        (t) =>
-          t.programmeId === activeProgrammeId &&
-          t.weekNum === currentWeek &&
-          t.dayOfWeek === forDayOfWeek &&
-          t.category === cat,
-      );
-      if (programmeMatch) return programmeMatch;
+      if (isCycleMode) {
+        const matches = templates.filter(
+          (t) =>
+            t.programmeId === activeProgrammeId &&
+            t.weekNum === currentWeek &&
+            t.category === cat,
+        );
+        if (matches.length === 1) return matches[0];
+        if (matches.length > 1) {
+          // Disambiguate 'back': double day = OHP+pull, solo = deadlift.
+          if (cat === "back") {
+            const isDouble =
+              slotDayCats.filter((c) => c === "back" || c === "speed").length >=
+              2;
+            if (isDouble) {
+              return (
+                matches.find(
+                  (t) => !t.name.toLowerCase().includes("deadlift"),
+                ) ?? matches[0]
+              );
+            }
+            return (
+              matches.find((t) => t.name.toLowerCase().includes("deadlift")) ??
+              matches[0]
+            );
+          }
+          return matches[0];
+        }
+      } else {
+        const programmeMatch = templates.find(
+          (t) =>
+            t.programmeId === activeProgrammeId &&
+            t.weekNum === currentWeek &&
+            t.dayOfWeek === forDayOfWeek &&
+            t.category === cat,
+        );
+        if (programmeMatch) return programmeMatch;
+      }
     }
     return (
       templates.find(
@@ -183,7 +223,11 @@ export default async function Home() {
 
   const todayCategories = slotsByDay[today] ?? [];
   const todayPrimary = todayCategories[0] ?? null;
-  const todayTemplate = templateForCategoryAndPhase(todayPrimary, today);
+  const todayTemplate = templateForCategoryAndPhase(
+    todayPrimary,
+    today,
+    todayCategories,
+  );
   const todayExtras = todayCategories.slice(1);
   const meta = todayPrimary ? CATEGORY_META[todayPrimary] : null;
 
@@ -192,8 +236,9 @@ export default async function Home() {
   let scheduledHardCount = 0;
   let scheduledTotalCount = 0;
   for (let d = 0; d < cycleLength; d++) {
-    for (const cat of slotsByDay[d] ?? []) {
-      const tmpl = templateForCategoryAndPhase(cat, d);
+    const dCats = slotsByDay[d] ?? [];
+    for (const cat of dCats) {
+      const tmpl = templateForCategoryAndPhase(cat, d, dCats);
       if (!tmpl) continue;
       scheduledTotalCount++;
       if (
@@ -400,7 +445,7 @@ export default async function Home() {
               <li key={d} className={isToday ? "bg-amber-50 rounded-lg" : ""}>
                 <ul>
                   {cats.map((cat, idx) => {
-                    const tmpl = templateForCategoryAndPhase(cat, d);
+                    const tmpl = templateForCategoryAndPhase(cat, d, cats);
                     const m = CATEGORY_META[cat];
                     const lineLabel = tmpl ? tmpl.name : (m?.label ?? cat);
                     const content = (

@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { layoutCycle } from "@/lib/cycle-layout";
 
 // Activating a programme:
 // 1. Increments currentMesoNum (treats it as a new mesocycle)
 // 2. Resets currentWeek to 1
 // 3. Wipes existing ScheduleSlot rows
 // 4. Inserts the programme's default ProgrammeSlot rows as ScheduleSlots
-// 5. Sets activeProgrammeId
+// 5. Sets activeProgrammeId + cycleStartedAt
+// 6. For cycle-mode programmes (cycleLength != 7): pre-computes per-
+//    cycle calendar-aware layouts respecting the user's constraints
+//    (long ride Sat/Sun, conditioning Mon/Wed/Fri) and writes them as
+//    WeekScheduleSlot rows for cycles 1..totalWeeks. The user can edit
+//    these per-cycle from home → "Edit cycle N →".
 // SessionLog rows are preserved — they reference templates by ID, and
 // activation doesn't touch templates.
 export async function POST(
@@ -34,6 +40,9 @@ export async function POST(
       );
     }
 
+    const cycleStart = new Date();
+    const newMesoNum = userState.currentMesoNum + 1;
+
     await prisma.$transaction([
       prisma.scheduleSlot.deleteMany({}),
       prisma.scheduleSlot.createMany({
@@ -46,16 +55,57 @@ export async function POST(
         where: { id: 1 },
         data: {
           activeProgrammeId: programme.id,
-          currentMesoNum: userState.currentMesoNum + 1,
+          currentMesoNum: newMesoNum,
           currentWeek: 1,
-          programmeStart: new Date(),
-          cycleStartedAt: new Date(),
+          programmeStart: cycleStart,
+          cycleStartedAt: cycleStart,
         },
       }),
     ]);
 
+    let cycleSlotsWritten = 0;
+    if (programme.cycleLength !== 7) {
+      // Clear any stale overrides for this meso, then pre-compute layouts
+      // for every cycle of the programme based on calendar.
+      await prisma.weekScheduleSlot.deleteMany({
+        where: { mesoNum: newMesoNum },
+      });
+      for (let cycleNum = 1; cycleNum <= programme.totalWeeks; cycleNum++) {
+        const cycleStartDate = new Date(cycleStart);
+        cycleStartDate.setDate(
+          cycleStart.getDate() + (cycleNum - 1) * programme.cycleLength,
+        );
+        const layout = layoutCycle(cycleStartDate, programme.cycleLength);
+        const rows: Array<{
+          mesoNum: number;
+          weekNum: number;
+          dayOfWeek: number;
+          categoryId: string;
+        }> = [];
+        for (const day of layout) {
+          for (const cat of day.categories) {
+            rows.push({
+              mesoNum: newMesoNum,
+              weekNum: cycleNum,
+              dayOfWeek: day.cycleDay,
+              categoryId: cat,
+            });
+          }
+        }
+        if (rows.length > 0) {
+          await prisma.weekScheduleSlot.createMany({ data: rows });
+          cycleSlotsWritten += rows.length;
+        }
+      }
+    }
+
     const fresh = await prisma.userState.findUnique({ where: { id: 1 } });
-    return NextResponse.json({ ok: true, state: fresh, programme });
+    return NextResponse.json({
+      ok: true,
+      state: fresh,
+      programme,
+      cycleSlotsWritten,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
