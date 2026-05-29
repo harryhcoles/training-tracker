@@ -165,21 +165,26 @@ export default async function Home() {
         );
         if (matches.length === 1) return matches[0];
         if (matches.length > 1) {
-          // Disambiguate 'back': double day = OHP+pull, solo = deadlift.
+          // For programmes that seed multiple templates per (cycle, category)
+          // — e.g. the Hybrid plan has back×2 (deadlift + OHP+pull) and
+          // speed×2 (solo VO2/Threshold + the bike-PM half of the D7
+          // double) — disambiguate via the template's original cycleDay,
+          // which acts as a stable "slot type" identifier:
+          //   back: cycleDay=5 = deadlift (solo), cycleDay=6 = OHP+pull (double)
+          //   speed: cycleDay=1 = solo bike, cycleDay=6 = double bike
+          const isDouble =
+            slotDayCats.filter((c) => c === "back" || c === "speed").length >=
+            2;
           if (cat === "back") {
-            const isDouble =
-              slotDayCats.filter((c) => c === "back" || c === "speed").length >=
-              2;
-            if (isDouble) {
-              return (
-                matches.find(
-                  (t) => !t.name.toLowerCase().includes("deadlift"),
-                ) ?? matches[0]
-              );
-            }
+            const wantDayOfWeek = isDouble ? 6 : 5;
             return (
-              matches.find((t) => t.name.toLowerCase().includes("deadlift")) ??
-              matches[0]
+              matches.find((t) => t.dayOfWeek === wantDayOfWeek) ?? matches[0]
+            );
+          }
+          if (cat === "speed") {
+            const wantDayOfWeek = isDouble ? 6 : 1;
+            return (
+              matches.find((t) => t.dayOfWeek === wantDayOfWeek) ?? matches[0]
             );
           }
           return matches[0];
