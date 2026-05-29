@@ -926,6 +926,20 @@ async function main() {
   }
   console.log(`Default slots: ${SCHEDULE_SLOTS.length} written`);
 
+  // Sync the *active* ScheduleSlot rows from the new programme default
+  // — without re-activating. Activation increments currentMesoNum and
+  // resets currentWeek which we don't want on a structure reseed.
+  await p.$transaction([
+    p.scheduleSlot.deleteMany({}),
+    p.scheduleSlot.createMany({
+      data: SCHEDULE_SLOTS.map((s) => ({
+        dayOfWeek: s.dayOfWeek,
+        categoryId: s.categoryId,
+      })),
+    }),
+  ]);
+  console.log(`Active ScheduleSlot synced (${SCHEDULE_SLOTS.length} rows)`);
+
   // Wipe per-cycle/week overrides for the current meso — they were
   // sized for the 9-day cycle and aren't compatible with the 7-day v2.
   const userState = await p.userState.findUnique({ where: { id: 1 } });
