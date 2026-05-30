@@ -6,6 +6,7 @@ import {
   getSuggestedTarget,
   isDeloadWeek,
   liftTargetForExercise,
+  parsePrescribedWeight,
   type PrevTopSet,
   type SuggestedTarget,
 } from "@/lib/progression";
@@ -114,12 +115,18 @@ export default async function SessionPage({
         // (most truthful), else any-rep evidence.
         const displayPrev = prevSame ?? prevAny;
         if (displayPrev) previousTopSets[ex.name] = displayPrev;
+        // Programme prescription (parsed from "@Xkg" in the exercise
+        // note). When set, it's the suggestion baseline — prior RPE
+        // only nudges when comparable load (±10%). This means a deload
+        // week's lighter set doesn't drag the next heavy week down.
+        const prescribed = parsePrescribedWeight(ex.note);
         const sug = getSuggestedTarget(
           prevSame,
           prevAny,
           targetReps,
           liftTargets[ex.name],
           deload,
+          prescribed,
         );
         if (sug) suggestions[ex.name] = sug;
       }
