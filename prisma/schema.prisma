@@ -27,6 +27,7 @@ model Programme {
   description   String?
   totalWeeks    Int              @default(12)
   cycleLength   Int              @default(7)
+  deloadWeeks   Int[]            @default([4, 8, 12])
   isCustom      Boolean          @default(false)
   scheduleSlots ProgrammeSlot[]
   templates     SessionTemplate[]

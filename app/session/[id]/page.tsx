@@ -29,7 +29,12 @@ export default async function SessionPage({
         exercises: { orderBy: { orderIndex: "asc" } },
       },
     }),
-    prisma.userState.findUnique({ where: { id: 1 } }),
+    prisma.userState.findUnique({
+      where: { id: 1 },
+      include: {
+        activeProgramme: { select: { deloadWeeks: true } },
+      },
+    }),
   ]);
 
   if (!template) notFound();
@@ -104,7 +109,10 @@ export default async function SessionPage({
     }
 
     if (userState) {
-      const deload = isDeloadWeek(weekNum);
+      const deload = isDeloadWeek(
+        weekNum,
+        userState.activeProgramme?.deloadWeeks,
+      );
       for (const ex of template.exercises) {
         liftTargets[ex.name] = liftTargetForExercise(ex.name, userState);
         const targetReps = ex.reps;

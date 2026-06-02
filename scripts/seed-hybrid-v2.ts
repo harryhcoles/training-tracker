@@ -84,7 +84,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 5, reps: 5, note: "@65kg · EXPLOSIVE concentric" },
       { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true, note: "DBs" },
-      { name: "Barbell Hip Thrust", sets: 3, reps: 10, note: "off bench" },
+      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg · hard swings, hinge dominant" },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Plank", sets: 3, reps: null, note: "60s hold" },
     ],
   },
@@ -97,7 +98,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 3, reps: 5, note: "@60kg" },
       { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 2, reps: 10 },
+      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@20kg · easy" },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -109,7 +111,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 4, reps: 8, note: "@57.5kg" },
       { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 3, reps: 10 },
+      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Plank", sets: 3, reps: null, note: "60s hold" },
     ],
   },
@@ -123,7 +126,8 @@ const SQUAT: StrengthT[] = [
       { name: "Back Squat", sets: 4, reps: 5, note: "@72.5kg · EXPLOSIVE concentric" },
       { name: "Pause Squat", sets: 3, reps: 3, note: "@60kg · 2s pause in hole" },
       { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 3, reps: 10 },
+      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Plank", sets: 3, reps: null, note: "60s hold" },
     ],
   },
@@ -136,7 +140,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 4, reps: 8, note: "@62.5kg" },
       { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 3, reps: 10 },
+      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
     ],
   },
   {
@@ -148,7 +153,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 3, reps: 3, note: "@65kg" },
       { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 2, reps: 10 },
+      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@20kg · easy" },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -163,7 +169,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 4, reps: 3, note: "@80kg · MAX CONCENTRIC velocity" },
       { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Barbell Hip Thrust", sets: 2, reps: 10 },
+      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@24kg" },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -175,6 +182,8 @@ const SQUAT: StrengthT[] = [
     exercises: [
       { name: "Back Squat", sets: 3, reps: 6, note: "@67.5kg" },
       { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
+      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@24kg" },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -182,9 +191,11 @@ const SQUAT: StrengthT[] = [
     dayOfWeek: MON,
     category: "legs",
     name: "W9 Mon: Squat test 3-5RM @ 85kg",
-    description: "TEST. Build to 3-5RM single. Goal: 3 clean reps @ 85kg. Drive every rep fast.",
+    description:
+      "TEST. Build to 3-5RM single. Goal: 3 clean reps @ 85kg. Drive every rep fast. Calf raise only after — don't pre-fatigue.",
     exercises: [
       { name: "Back Squat", sets: 1, reps: 3, note: "Build to 3-5RM, target 85kg" },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
@@ -195,6 +206,7 @@ const SQUAT: StrengthT[] = [
     description: "Taper. Light, fast bar speed. Goal ride 5 days away.",
     exercises: [
       { name: "Back Squat", sets: 3, reps: 3, note: "@65kg · fast bar" },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
 ];
@@ -323,6 +335,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 5, note: "@90kg · EXPLOSIVE concentric" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: "DBs" },
       { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest · RFD" },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -336,6 +349,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 3, reps: 5, note: "@75kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
       { name: "Pallof Press", sets: 2, reps: 10, perSide: true },
     ],
   },
@@ -349,6 +363,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 8, note: "@77.5kg" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -362,6 +377,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 3, note: "@97.5kg · EXPLOSIVE concentric" },
       { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -375,6 +391,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 3, reps: 8, note: "@82.5kg" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
     ],
   },
   {
@@ -387,6 +404,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 2, reps: 8, note: "@72.5kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -401,6 +419,7 @@ const DEADLIFT: StrengthT[] = [
     exercises: [
       { name: "Deadlift", sets: 3, reps: 3, note: "@105kg · MAX CONCENTRIC" },
       { name: "Box Jump", sets: 5, reps: 3 },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -413,6 +432,7 @@ const DEADLIFT: StrengthT[] = [
     exercises: [
       { name: "Deadlift", sets: 3, reps: 6, note: "@87.5kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
+      { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -423,6 +443,7 @@ const DEADLIFT: StrengthT[] = [
     description: "TEST. Build to single. Target 115kg. STOP if RPE 9+ — save legs for dress rehearsal Sat.",
     exercises: [
       { name: "Deadlift", sets: 1, reps: 1, note: "Build to single, target 115kg" },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
@@ -887,6 +908,7 @@ async function main() {
       description: PROGRAMME_DESC,
       totalWeeks: 10,
       cycleLength: 7,
+      deloadWeeks: [2, 6],
     },
   });
   console.log(

@@ -9,11 +9,13 @@ export default function WeekTimeline({
   currentMeso,
   totalWeeks = 12,
   isCycleMode = false,
+  deloadWeeks = [4, 8, 12],
 }: {
   currentWeek: number;
   currentMeso: number;
   totalWeeks?: number;
   isCycleMode?: boolean;
+  deloadWeeks?: number[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -23,7 +25,7 @@ export default function WeekTimeline({
   const displayWeek = pending ? optimisticWeek : currentWeek;
   const displayPhase =
     displayWeek <= 4 ? "base" : displayWeek <= 8 ? "build" : "peak";
-  const displayDeload = isDeloadWeek(displayWeek);
+  const displayDeload = isDeloadWeek(displayWeek, deloadWeeks);
 
   async function setWeek(week: number) {
     if (week === currentWeek) return;
@@ -64,7 +66,7 @@ export default function WeekTimeline({
         {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => {
           const isPast = w < displayWeek;
           const isCurrent = w === displayWeek;
-          const isDeload = isDeloadWeek(w);
+          const isDeload = isDeloadWeek(w, deloadWeeks);
           let bg: string;
           if (isCurrent) {
             bg = isDeload ? "bg-amber-300" : "bg-amber-400";

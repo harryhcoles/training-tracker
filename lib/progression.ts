@@ -6,10 +6,16 @@ export function getCurrentPhase(week: number): Phase {
   return "peak";
 }
 
-// Standard wave-loading: every 4th week is a deload. Week 12 acts as a
-// taper before the next mesocycle (templates already reflect this).
-export function isDeloadWeek(week: number): boolean {
-  return week === 4 || week === 8 || week === 12;
+// Deload weeks are programme-specific. Default for legacy 12-week
+// plans is [4, 8, 12]; the Hybrid v2 7-day plan uses [2, 6]. Callers
+// should pass the active programme's `deloadWeeks` array — falling
+// back to the legacy default keeps any consumer that doesn't know
+// about programmes working.
+export function isDeloadWeek(
+  week: number,
+  deloadWeeks: number[] = [4, 8, 12],
+): boolean {
+  return deloadWeeks.includes(week);
 }
 
 export type PrevTopSet = {

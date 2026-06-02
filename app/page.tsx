@@ -104,18 +104,22 @@ export default async function Home() {
   const currentWeek = userState?.currentWeek ?? 1;
   const currentMeso = userState?.currentMesoNum ?? 1;
   const currentPhase = getCurrentPhase(currentWeek);
-  const onDeload = isDeloadWeek(currentWeek);
   const activeProgrammeId = userState?.activeProgrammeId ?? null;
 
-  // Look up the active programme's name + cycleLength for the header
-  // and for deciding whether to render a 7-day calendar or an N-day
-  // cycle view.
+  // Look up the active programme's name + cycleLength + deloadWeeks for
+  // the header, calendar mode, and deload badging.
   const activeProgramme = activeProgrammeId
     ? await prisma.programme.findUnique({
         where: { id: activeProgrammeId },
-        select: { name: true, totalWeeks: true, cycleLength: true },
+        select: {
+          name: true,
+          totalWeeks: true,
+          cycleLength: true,
+          deloadWeeks: true,
+        },
       })
     : null;
+  const onDeload = isDeloadWeek(currentWeek, activeProgramme?.deloadWeeks);
 
   const cycleLength = activeProgramme?.cycleLength ?? 7;
   const isCycleMode = cycleLength !== 7;
@@ -378,6 +382,7 @@ export default async function Home() {
         currentMeso={currentMeso}
         totalWeeks={activeProgramme?.totalWeeks ?? 12}
         isCycleMode={isCycleMode}
+        deloadWeeks={activeProgramme?.deloadWeeks ?? [4, 8, 12]}
       />
 
       <section className="bg-white rounded-2xl p-5 shadow-sm">
