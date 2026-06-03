@@ -223,6 +223,8 @@ const BENCH: StrengthT[] = [
     description: "Heavy intro. " + EXPL,
     exercises: [
       { name: "Bench Press", sets: 5, reps: 5, note: "@57.5kg · EXPLOSIVE concentric" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -232,7 +234,12 @@ const BENCH: StrengthT[] = [
     category: "chest",
     name: "W2 Tue: Bench 3×5 @ 50kg (deload)",
     description: "Deload.",
-    exercises: [{ name: "Bench Press", sets: 3, reps: 5, note: "@50kg" }],
+    exercises: [
+      { name: "Bench Press", sets: 3, reps: 5, note: "@50kg" },
+      { name: "Dumbbell Overhead Press", sets: 2, reps: 8, note: "@12.5kg DBs" },
+      { name: "Barbell Row", sets: 2, reps: 8, note: "@45kg" },
+      { name: "Face Pull", sets: 2, reps: 15 },
+    ],
   },
   {
     weekNum: 3,
@@ -242,6 +249,8 @@ const BENCH: StrengthT[] = [
     description: "Moderate. Controlled tempo.",
     exercises: [
       { name: "Bench Press", sets: 4, reps: 8, note: "@50kg" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -254,6 +263,8 @@ const BENCH: StrengthT[] = [
     exercises: [
       { name: "Bench Press", sets: 4, reps: 5, note: "@62.5kg · EXPLOSIVE concentric" },
       { name: "Close-Grip Bench Press", sets: 3, reps: 6, note: "@55kg" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -265,6 +276,8 @@ const BENCH: StrengthT[] = [
     description: "Moderate build.",
     exercises: [
       { name: "Bench Press", sets: 4, reps: 8, note: "@55kg" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -274,7 +287,12 @@ const BENCH: StrengthT[] = [
     category: "chest",
     name: "W6 Tue: Bench 3×3 @ 60kg (deload)",
     description: "Deload triples.",
-    exercises: [{ name: "Bench Press", sets: 3, reps: 3, note: "@60kg" }],
+    exercises: [
+      { name: "Bench Press", sets: 3, reps: 3, note: "@60kg" },
+      { name: "Dumbbell Overhead Press", sets: 2, reps: 6, note: "@12.5kg DBs" },
+      { name: "Barbell Row", sets: 2, reps: 6, note: "@45kg" },
+      { name: "Face Pull", sets: 2, reps: 15 },
+    ],
   },
   {
     weekNum: 7,
@@ -284,6 +302,9 @@ const BENCH: StrengthT[] = [
     description: "PEAK. " + EXPL,
     exercises: [
       { name: "Bench Press", sets: 4, reps: 3, note: "@70kg · MAX CONCENTRIC velocity" },
+      { name: "Close-Grip Bench Press", sets: 3, reps: 5, note: "@57.5kg" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -295,6 +316,8 @@ const BENCH: StrengthT[] = [
     description: "Moderate peak — maintenance.",
     exercises: [
       { name: "Bench Press", sets: 3, reps: 6, note: "@60kg" },
+      { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
+      { name: "Barbell Row", sets: 3, reps: 6, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
     ],
   },
@@ -313,9 +336,10 @@ const BENCH: StrengthT[] = [
     dayOfWeek: TUE,
     category: "chest",
     name: "W10 Tue: Bench 3×3 @ 57.5kg (taper, fast)",
-    description: "Taper. Light, fast bar.",
+    description: "Taper. Light, fast bar. Minimal accessories — fresh for goal ride.",
     exercises: [
       { name: "Bench Press", sets: 3, reps: 3, note: "@57.5kg · fast bar" },
+      { name: "Face Pull", sets: 2, reps: 15 },
     ],
   },
 ];
