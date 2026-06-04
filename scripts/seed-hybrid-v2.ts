@@ -359,7 +359,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 5, note: "@90kg · EXPLOSIVE concentric" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: "DBs" },
       { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest · RFD" },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
+      { name: "Seated Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -373,7 +373,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 3, reps: 5, note: "@75kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Seated Calf Raise", sets: 2, reps: 15 },
       { name: "Pallof Press", sets: 2, reps: 10, perSide: true },
     ],
   },
@@ -387,7 +387,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 8, note: "@77.5kg" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
+      { name: "Seated Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -401,7 +401,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 4, reps: 3, note: "@97.5kg · EXPLOSIVE concentric" },
       { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
+      { name: "Seated Calf Raise", sets: 3, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -415,7 +415,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 3, reps: 8, note: "@82.5kg" },
       { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
+      { name: "Seated Calf Raise", sets: 3, reps: 15 },
     ],
   },
   {
@@ -428,7 +428,7 @@ const DEADLIFT: StrengthT[] = [
       { name: "Deadlift", sets: 2, reps: 8, note: "@72.5kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
       { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Seated Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -443,7 +443,7 @@ const DEADLIFT: StrengthT[] = [
     exercises: [
       { name: "Deadlift", sets: 3, reps: 3, note: "@105kg · MAX CONCENTRIC" },
       { name: "Box Jump", sets: 5, reps: 3 },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Seated Calf Raise", sets: 2, reps: 15 },
       { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
     ],
   },
@@ -456,7 +456,7 @@ const DEADLIFT: StrengthT[] = [
     exercises: [
       { name: "Deadlift", sets: 3, reps: 6, note: "@87.5kg" },
       { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Seated Calf Raise", sets: 2, reps: 15 },
     ],
   },
   {
@@ -467,7 +467,7 @@ const DEADLIFT: StrengthT[] = [
     description: "TEST. Build to single. Target 115kg. STOP if RPE 9+ — save legs for dress rehearsal Sat.",
     exercises: [
       { name: "Deadlift", sets: 1, reps: 1, note: "Build to single, target 115kg" },
-      { name: "Standing Calf Raise", sets: 2, reps: 12 },
+      { name: "Seated Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
