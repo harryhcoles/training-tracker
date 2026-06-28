@@ -62,16 +62,13 @@ export function parsePrescribedWeight(
 // PRECEDENCE:
 // 1. If the exercise template carries a prescribed weight (@Xkg in the
 //    note), use THAT as the baseline. Prior RPE history only nudges it
-//    up/down when prior evidence is at comparable load (±10%). This
-//    means a deload week's lighter set doesn't drag the next heavy
-//    week's suggestion down — the programme's prescribed weight wins.
+//    up/down when prior evidence is at comparable load (±10%). The
+//    caller is expected to filter history to the matching lane (heavy
+//    vs deload) so deload-to-deload and heavy-to-heavy progress
+//    independently.
 // 2. Otherwise fall back to the old "use most recent prior set" logic
 //    with same-reps preferred, any-reps scaled via Epley, RPE
 //    adjustment applied.
-//
-// Deload weeks: if the prescribed weight is set, just trust it (it's
-// already a deload prescription). Else fall back to 70% of last
-// session.
 //
 // Zhang et al. 2025 NMA — RPE-driven autoregulation. Epley 1RM holds
 // well enough across 2-12 rep ranges for load-scaling within a phase.
@@ -83,20 +80,18 @@ export function getSuggestedTarget(
   isDeload: boolean = false,
   prescribedWeightKg: number | null = null,
 ): SuggestedTarget | null {
-  // Branch 1: prescribed weight is the baseline.
+  // Branch 1: prescribed weight is the baseline. Applies to both
+  // heavy and deload weeks — caller filters history to the matching
+  // lane so prior deload RPE nudges deload, prior heavy RPE nudges
+  // heavy.
   if (prescribedWeightKg != null) {
     const baseline = prescribedWeightKg;
     let weight = baseline;
-    let reason = "Programme prescription";
-
-    if (isDeload) {
-      // Already a deload prescription — trust it verbatim.
-      return { weight: roundTo2_5(baseline), reason: "Deload week — follow programme" };
-    }
+    const label = isDeload ? "Deload" : "Programme";
+    let reason = `${label} prescription`;
 
     // Only let RPE history adjust if the prior set was at a COMPARABLE
-    // load (±10% of today's prescription). This stops deload sets
-    // from polluting heavy/peak suggestions.
+    // load (±10% of today's prescription).
     const tolerance = baseline * 0.1;
     const comparable =
       prevSameReps &&
@@ -109,13 +104,13 @@ export function getSuggestedTarget(
       const rpe = comparable.rpe;
       if (rpe <= 7) {
         weight = baseline + 2.5;
-        reason = "Programme +2.5kg — last comparable set was RPE ≤7";
+        reason = `${label} +2.5kg — last comparable set was RPE ≤7`;
       } else if (rpe >= 8 && rpe <= 9) {
         weight = baseline;
-        reason = "Programme weight — last comparable set was RPE 8-9";
+        reason = `${label} weight — last comparable set was RPE 8-9`;
       } else if (rpe === 10) {
         weight = Math.max(baseline - 2.5, 0);
-        reason = "Programme -2.5kg — last comparable set was RPE 10";
+        reason = `${label} -2.5kg — last comparable set was RPE 10`;
       }
     }
 

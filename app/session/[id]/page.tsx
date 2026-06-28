@@ -41,6 +41,9 @@ export default async function SessionPage({
 
   const mesoNum = userState?.currentMesoNum ?? 1;
   const weekNum = userState?.currentWeek ?? 1;
+  const deloadWeeks = userState?.activeProgramme?.deloadWeeks ?? [4, 8, 12];
+  const currentIsDeload = isDeloadWeek(weekNum, deloadWeeks);
+  const laneTag: "heavy" | "deload" = currentIsDeload ? "deload" : "heavy";
 
   // Prefill from today's log of this template (if any). Logs from earlier
   // in the week stay as separate entries — re-opening a template later in
@@ -79,15 +82,24 @@ export default async function SessionPage({
         weightKg: { not: null },
         ...(existingLog ? { sessionLogId: { not: existingLog.id } } : {}),
       },
-      include: { log: { select: { id: true, loggedAt: true } } },
+      include: {
+        log: { select: { id: true, loggedAt: true, weekNum: true } },
+      },
       orderBy: [{ log: { loggedAt: "desc" } }, { weightKg: "desc" }],
     });
+
+    // Lane filter: only sets logged in the matching lane (deload or
+    // heavy) feed today's "Last" and suggestion math. Stops a heavy
+    // PR contaminating a deload suggestion and vice versa.
+    const laneSets = allSets.filter(
+      (s) => deloadWeeks.includes(s.log.weekNum) === currentIsDeload,
+    );
 
     // Build (exerciseName, reps) → first occurrence map for same-rep
     // lookup, plus (exerciseName) → first occurrence for any-rep.
     const sameRepBest: Record<string, PrevTopSet> = {};
     const anyRepBest: Record<string, PrevTopSet> = {};
-    for (const s of allSets) {
+    for (const s of laneSets) {
       const anyKey = s.exerciseName;
       if (!anyRepBest[anyKey]) {
         anyRepBest[anyKey] = {
@@ -109,31 +121,26 @@ export default async function SessionPage({
     }
 
     if (userState) {
-      const deload = isDeloadWeek(
-        weekNum,
-        userState.activeProgramme?.deloadWeeks,
-      );
       for (const ex of template.exercises) {
         liftTargets[ex.name] = liftTargetForExercise(ex.name, userState);
         const targetReps = ex.reps;
         const sameKey = targetReps != null ? `${ex.name}::${targetReps}` : null;
         const prevSame = sameKey ? (sameRepBest[sameKey] ?? null) : null;
         const prevAny = anyRepBest[ex.name] ?? null;
-        // For the "Last:" display, show same-rep evidence if available
-        // (most truthful), else any-rep evidence.
-        const displayPrev = prevSame ?? prevAny;
-        if (displayPrev) previousTopSets[ex.name] = displayPrev;
+        // "Last" only surfaces same-rep evidence — cross-rep would
+        // mix heavy and volume streams. Sets are already lane-filtered
+        // above, so prevSame is from the matching deload/heavy lane.
+        if (prevSame) previousTopSets[ex.name] = prevSame;
         // Programme prescription (parsed from "@Xkg" in the exercise
         // note). When set, it's the suggestion baseline — prior RPE
-        // only nudges when comparable load (±10%). This means a deload
-        // week's lighter set doesn't drag the next heavy week down.
+        // from the matching lane nudges ±2.5kg when comparable (±10%).
         const prescribed = parsePrescribedWeight(ex.note);
         const sug = getSuggestedTarget(
           prevSame,
           prevAny,
           targetReps,
           liftTargets[ex.name],
-          deload,
+          currentIsDeload,
           prescribed,
         );
         if (sug) suggestions[ex.name] = sug;
@@ -204,6 +211,7 @@ export default async function SessionPage({
         mesoNum={mesoNum}
         weekNum={weekNum}
         isBike={isBike}
+        laneTag={laneTag}
         exercises={template.exercises.map((e) => ({
           id: e.id,
           name: e.name,

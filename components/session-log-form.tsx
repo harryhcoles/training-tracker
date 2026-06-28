@@ -63,6 +63,7 @@ export default function SessionLogForm({
   mesoNum,
   weekNum,
   isBike,
+  laneTag,
   exercises,
   existing,
   previousTopSets,
@@ -74,6 +75,7 @@ export default function SessionLogForm({
   mesoNum: number;
   weekNum: number;
   isBike: boolean;
+  laneTag?: "heavy" | "deload";
   exercises: ExerciseDef[];
   existing: Existing | null;
   previousTopSets?: Record<string, PrevTopSet>;
@@ -296,6 +298,8 @@ export default function SessionLogForm({
             prev={previousTopSets?.[ex.name] ?? null}
             suggestion={suggestions?.[ex.name] ?? null}
             liftTarget={liftTargets?.[ex.name] ?? null}
+            laneTag={laneTag}
+            targetReps={ex.reps}
           />
           <div className="mt-4 space-y-2">
             {setsByExercise[ex.name]?.map((s, i) => (
