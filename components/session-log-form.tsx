@@ -388,6 +388,19 @@ export default function SessionLogForm({
           {ex.note && (
             <p className="text-xs text-stone-500 mt-1 italic">{ex.note}</p>
           )}
+          {/* Hypertrophy-range sets only grow if they approach failure
+              (Robinson et al. 2024 meta-regression) — remind on 8+ rep
+              work, but never on deloads, where grinding defeats the
+              purpose. */}
+          {!isBike &&
+            laneTag !== "deload" &&
+            ex.reps != null &&
+            ex.reps >= 8 && (
+              <p className="text-[11px] text-amber-700 mt-1 font-medium">
+                Hypertrophy range — take working sets near failure (RPE 8-9,
+                0-2 reps left)
+              </p>
+            )}
           <SuggestedTarget
             prev={previousTopSets?.[ex.name] ?? null}
             suggestion={suggestions?.[ex.name] ?? null}
