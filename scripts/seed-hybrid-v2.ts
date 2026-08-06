@@ -161,9 +161,9 @@ const SQUAT: StrengthT[] = [
     weekNum: 7,
     dayOfWeek: MON,
     category: "legs",
-    name: "W7 Mon: Squat 4×3 @ 80kg (100% TM)",
+    name: "W7 Mon: Squat 4×3 @ 80kg (peak)",
     description:
-      "PEAK. 100% TM triples — pure rate-of-force-development. " +
+      "PEAK. Peak triples — pure rate-of-force-development. " +
       EXPL +
       " This is the adaptation that transfers to the pedal stroke.",
     exercises: [
@@ -190,11 +190,11 @@ const SQUAT: StrengthT[] = [
     weekNum: 9,
     dayOfWeek: MON,
     category: "legs",
-    name: "W9 Mon: Squat test 3-5RM @ 85kg",
+    name: "W9 Mon: Squat test 3-5RM",
     description:
-      "TEST. Build to 3-5RM single. Goal: 3 clean reps @ 85kg. Drive every rep fast. Calf raise only after — don't pre-fatigue.",
+      "TEST. Build to a 3-5RM — target set by your recent top sets (the app's Last/Suggested line). Drive every rep fast. Calf raise only after — don't pre-fatigue.",
     exercises: [
-      { name: "Back Squat", sets: 1, reps: 3, note: "Build to 3-5RM, target 85kg" },
+      { name: "Back Squat", sets: 1, reps: 3, note: "Build to 3-5RM" },
       { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
@@ -304,7 +304,7 @@ const BENCH: StrengthT[] = [
     weekNum: 7,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W7 Tue: Bench 4×3 @ 70kg (100% TM)",
+    name: "W7 Tue: Bench 4×3 @ 70kg (peak)",
     description: "PEAK. " + EXPL,
     exercises: [
       { name: "Bench Press", sets: 4, reps: 3, note: "@70kg · MAX CONCENTRIC velocity" },
@@ -333,10 +333,11 @@ const BENCH: StrengthT[] = [
     weekNum: 9,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W9 Tue: Bench test 3-5RM @ 75kg",
-    description: "TEST. Build to 3-5RM. Target 3 reps @ 75kg.",
+    name: "W9 Tue: Bench test 3-5RM",
+    description:
+      "TEST. Build to a 3-5RM — target set by your recent top sets.",
     exercises: [
-      { name: "Bench Press", sets: 1, reps: 3, note: "Build to 3-5RM, target 75kg" },
+      { name: "Bench Press", sets: 1, reps: 3, note: "Build to 3-5RM" },
     ],
   },
   {
@@ -445,7 +446,7 @@ const DEADLIFT: StrengthT[] = [
     category: "back",
     name: "W7 Thu: Deadlift 3×3 @ 105kg + jumps",
     description:
-      "PEAK. 100% TM triples. " +
+      "PEAK. Peak triples. " +
       EXPL +
       " The test ride is Sat — pace this carefully, save legs.",
     exercises: [
@@ -471,10 +472,11 @@ const DEADLIFT: StrengthT[] = [
     weekNum: 9,
     dayOfWeek: THU,
     category: "back",
-    name: "W9 Thu: Deadlift single @ 115kg test",
-    description: "TEST. Build to single. Target 115kg. STOP if RPE 9+ — save legs for dress rehearsal Sat.",
+    name: "W9 Thu: Deadlift single test",
+    description:
+      "TEST. Build to a heavy single — target set by your recent top sets. STOP if RPE 9+ — save legs for dress rehearsal Sat.",
     exercises: [
-      { name: "Deadlift", sets: 1, reps: 1, note: "Build to single, target 115kg" },
+      { name: "Deadlift", sets: 1, reps: 1, note: "Build to a heavy single" },
       { name: "Seated Calf Raise", sets: 2, reps: 12 },
     ],
   },
@@ -599,10 +601,11 @@ const UPPER: StrengthT[] = [
     weekNum: 9,
     dayOfWeek: FRI,
     category: "back",
-    name: "W9 Fri: Weighted Pull-up test +20-25kg",
-    description: "TEST. Build weighted pull-up to a heavy single. Target +20-25kg.",
+    name: "W9 Fri: Weighted Pull-up test",
+    description:
+      "TEST. Build weighted pull-up to a heavy single — added load set by your recent top sets.",
     exercises: [
-      { name: "Weighted Pull-up", sets: 1, reps: 3, note: "Build to heavy single, target +20-25kg" },
+      { name: "Weighted Pull-up", sets: 1, reps: 3, note: "Build to a heavy single" },
       { name: "Standing Overhead Press", sets: 3, reps: 5, note: "Supplemental" },
     ],
   },
@@ -1011,7 +1014,37 @@ const METCON: BikeT[] = [
   },
 ];
 
-const ALL_STRENGTH: StrengthT[] = [...SQUAT, ...BENCH, ...DEADLIFT, ...UPPER];
+// Strip prescribed weights from titles and exercise notes. The arrays
+// above keep the original design loads for reference, but the app
+// must not show or parse them — suggestions are driven purely by the
+// user's own logged history (last comparable lift + RPE rule). The
+// paper prescriptions assumed training maxes ~12kg below the user's
+// actual lifts, so prescription-as-baseline produced nonsense jumps.
+function stripKg(s: string): string {
+  return s
+    .replace(/\s*[@+]\s*\d+(?:\.\d+)?\s*kg\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+function tidyNote(s: string): string | null {
+  const t = s
+    .replace(/^\s*·\s*/, "")
+    .replace(/\s*·\s*$/, "")
+    .replace(/·\s*·/g, "·")
+    .trim();
+  return t.length > 0 ? t : null;
+}
+
+const ALL_STRENGTH: StrengthT[] = [...SQUAT, ...BENCH, ...DEADLIFT, ...UPPER].map(
+  (t) => ({
+    ...t,
+    name: stripKg(t.name),
+    exercises: t.exercises.map((e) => ({
+      ...e,
+      note: e.note ? tidyNote(stripKg(e.note)) : e.note,
+    })),
+  }),
+);
 const ALL_BIKE: BikeT[] = [...TUE_Z2, ...WED_BIKE, ...SAT_LONG, ...METCON];
 
 async function main() {
