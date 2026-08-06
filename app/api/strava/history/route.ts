@@ -25,6 +25,22 @@ export async function GET(request: Request) {
       (a) => a.type === "Ride" || a.type === "VirtualRide",
     );
 
+    // ?list=1 — raw per-ride list (slim), newest first. Used for
+    // pace calibration when designing plan targets.
+    if (url.searchParams.get("list")) {
+      return NextResponse.json({
+        ok: true,
+        windowDays: days,
+        rides: [...rides]
+          .sort(
+            (a, b) =>
+              new Date(b.start_date).getTime() -
+              new Date(a.start_date).getTime(),
+          )
+          .map(slim),
+      });
+    }
+
     // Totals
     const totalHours = sum(rides.map((r) => r.moving_time / 3600));
     const totalKm = sum(rides.map((r) => r.distance / 1000));
