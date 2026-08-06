@@ -174,3 +174,33 @@ tests — consider trimming if fatigued.
 - **Iversen et al. 2021** (*Sports Med* 51); **Spiering et al. 2021**
   (*JSCR* 35(5)): strength is maintainable on ~1 session/week if load is
   preserved — basis for a future race-block "maintenance mode".
+
+## 13. Strength/hypertrophy rotation frequency (programme structure)
+
+**User goal:** train both strength and hypertrophy, alternating focus.
+
+- **Rhea et al. 2002**, *JSCR* 16(2). DUP beat linear for 1RM over 12
+  weeks (small, short study).
+- **Harries et al. 2015**, *JSCR* 29(4) meta (17 studies, n=510): no
+  significant difference linear vs undulating for strength.
+- **Grgic et al. 2017**, *PeerJ* 5:e3695 meta: linear vs DUP —
+  **hypertrophy identical**.
+- **Moesgaard et al. 2022**, *Sports Med* 52(7):1647-1666 (volume-equated
+  meta): undulating > linear for 1RM (ES 0.31), driven by **trained
+  lifters (ES 0.61)**; hypertrophy unaffected (ES 0.05).
+- **Painter et al. 2012**, *IJSPP* 7(2): block vs DUP in trained track
+  athletes — equal strength gains with **~35% less volume-load** for
+  block (efficiency matters when concurrent endurance load is high).
+- **Rønnestad et al. 2014** (*Scand J Med Sci Sports*) and **2019**
+  (DOI 10.1111/sms.13326): block-organised training beat evenly-mixed
+  distribution in cyclists and in concurrent strength+endurance athletes.
+- **No trial establishes an optimal block length** — the customary 3-6
+  week mesocycle is convention, not evidence. Note: a "Caldas et al."
+  periodization meta could not be verified; do not cite it.
+
+**Verdict:** rotation frequency barely matters for hypertrophy; undulation
+modestly favours strength in trained lifters; blocks are more *efficient*
+per unit volume (valuable alongside cycling). App recommendation: weekly
+undulation inside the current programme; post-goal-ride, 4-6 week
+hypertrophy blocks alternating with 3-4 week strength blocks, keeping one
+heavy day in hypertrophy blocks and one volume day in strength blocks.
