@@ -33,6 +33,27 @@ function roundTo2_5(weight: number): number {
   return Math.round(weight / 2.5) * 2.5;
 }
 
+// Load increment sized per the ACSM 2-10% progression guideline
+// (ACSM Position Stand 2009, MSSE 41(3)): ~2.5% of the working load,
+// rounded to the smallest plate jump (2.5kg), floored at 2.5kg. A
+// flat 2.5kg breaks the guideline at both ends — it's ~12% on a 20kg
+// lift but under 2% at 150kg+. Lifts under 25kg return null: the
+// smallest jump exceeds 10%, so progress reps instead (Plotkin et
+// al. 2022, PeerJ — load and rep progression produce similar gains).
+function incrementFor(baseline: number): number | null {
+  if (baseline < 25) return null;
+  return Math.max(2.5, roundTo2_5(baseline * 0.025));
+}
+
+// Self-reported RPE is only trustworthy near failure. Error is ~1 rep
+// when 0-5 reps from failure but >2 reps at longer distances, and
+// worse on high-rep sets (Hackett et al. 2017; Halperin et al. 2022
+// meta: lifters misjudge by ~1 rep on average). Above 10 target reps
+// a reported RPE ≤7 is too noisy to justify adding load.
+function rpeReliableForIncrement(targetReps: number | null): boolean {
+  return targetReps == null || targetReps <= 10;
+}
+
 // Epley 1RM. Returns an estimate of the user's 1-rep max from any
 // set (weight × reps at given RPE). Cheaply useful for scaling.
 function epley1rm(weight: number, reps: number): number {
@@ -70,8 +91,12 @@ export function parsePrescribedWeight(
 //    with same-reps preferred, any-reps scaled via Epley, RPE
 //    adjustment applied.
 //
-// Zhang et al. 2025 NMA — RPE-driven autoregulation. Epley 1RM holds
-// well enough across 2-12 rep ranges for load-scaling within a phase.
+// Evidence: RPE-based autoregulation beats fixed %1RM loading in
+// trials (Helms et al. 2018, Front Physiol; Graham & Cleather 2021,
+// JSCR; Hickmott et al. 2022 meta, Sports Med Open). Increments follow
+// the ACSM 2009 2-10% guideline. RPE reliability caveats per Hackett
+// et al. 2017 / Halperin et al. 2022. Epley scaling limited to ≤10
+// reps per LeSuer et al. 1997. See docs/EVIDENCE.md for the full map.
 export function getSuggestedTarget(
   prevSameReps: PrevTopSet | null,
   prevAnyReps: PrevTopSet | null,
@@ -102,15 +127,25 @@ export function getSuggestedTarget(
 
     if (comparable && comparable.rpe != null) {
       const rpe = comparable.rpe;
+      const inc = incrementFor(baseline);
       if (rpe <= 7) {
-        weight = baseline + 2.5;
-        reason = `+2.5kg on the ${label} — last time was RPE ${rpe}, you had reps in reserve`;
+        if (!rpeReliableForIncrement(targetReps)) {
+          weight = baseline;
+          reason = `Held at ${label} weight — RPE is hard to judge accurately on high-rep sets; take the last set closer to failure before adding load`;
+        } else if (inc == null) {
+          weight = baseline;
+          reason = `Held at ${label} weight — the smallest 2.5kg jump is over 10% on this lift; add a rep instead (last time was RPE ${rpe})`;
+        } else {
+          weight = baseline + inc;
+          reason = `+${inc}kg on the ${label} — last time was RPE ${rpe}, you had reps in reserve`;
+        }
       } else if (rpe >= 8 && rpe <= 9) {
         weight = baseline;
         reason = `Held at ${label} weight — last time was RPE ${rpe}, right on target effort`;
       } else if (rpe === 10) {
-        weight = Math.max(baseline - 2.5, 0);
-        reason = `-2.5kg off the ${label} — last time was RPE 10, too close to failure`;
+        const dec = inc ?? 2.5;
+        weight = Math.max(baseline - dec, 0);
+        reason = `-${dec}kg off the ${label} — last time was RPE 10, too close to failure`;
       }
     } else if (comparable) {
       reason = `Follows the ${label} prescription — last set had no RPE logged, so nothing to adjust from`;
@@ -137,7 +172,12 @@ export function getSuggestedTarget(
     prevAnyReps &&
     prevAnyReps.weightKg != null &&
     prevAnyReps.reps != null &&
-    targetReps != null
+    targetReps != null &&
+    // 1RM equations are only acceptably accurate up to ~10 reps
+    // (LeSuer et al. 1997, JSCR — ±3% in the 2-10 rep range, degrading
+    // sharply beyond). Don't Epley-scale to or from high-rep sets.
+    prevAnyReps.reps <= 10 &&
+    targetReps <= 10
   ) {
     const e1rm = epley1rm(prevAnyReps.weightKg, prevAnyReps.reps);
     baselineWeight = inverseEpley(e1rm, targetReps);
@@ -160,18 +200,28 @@ export function getSuggestedTarget(
 
   let weight: number;
   let reason: string;
+  const inc = incrementFor(baselineWeight);
   if (baselineRpe == null) {
     weight = baselineWeight;
     reason = `Match last session — no RPE logged, so nothing to adjust from${scalingNote}`;
   } else if (baselineRpe <= 7) {
-    weight = baselineWeight + 2.5;
-    reason = `+2.5kg on last session — it was RPE ${baselineRpe}, you had reps in reserve${scalingNote}`;
+    if (!rpeReliableForIncrement(targetReps)) {
+      weight = baselineWeight;
+      reason = `Match last session — RPE is hard to judge accurately on high-rep sets; take the last set closer to failure before adding load${scalingNote}`;
+    } else if (inc == null) {
+      weight = baselineWeight;
+      reason = `Match last session — the smallest 2.5kg jump is over 10% on this lift; add a rep instead (last time was RPE ${baselineRpe})${scalingNote}`;
+    } else {
+      weight = baselineWeight + inc;
+      reason = `+${inc}kg on last session — it was RPE ${baselineRpe}, you had reps in reserve${scalingNote}`;
+    }
   } else if (baselineRpe >= 8 && baselineRpe <= 9) {
     weight = baselineWeight;
     reason = `Match last session — it was RPE ${baselineRpe}, right on target effort${scalingNote}`;
   } else if (baselineRpe === 10) {
-    weight = Math.max(baselineWeight - 2.5, 0);
-    reason = `-2.5kg off last session — it was RPE 10, too close to failure${scalingNote}`;
+    const dec = inc ?? 2.5;
+    weight = Math.max(baselineWeight - dec, 0);
+    reason = `-${dec}kg off last session — it was RPE 10, too close to failure${scalingNote}`;
   } else {
     weight = baselineWeight;
     reason = `Match last session${scalingNote}`;

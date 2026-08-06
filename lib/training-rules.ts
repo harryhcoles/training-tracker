@@ -14,7 +14,7 @@ export type RecentLog = {
   template: { name: string; category: string; focus?: string | null };
 };
 
-const HARD_BIKE = ["speed", "conditioning"];
+const BIKE_CATS = ["speed", "endurance", "conditioning"];
 const STRENGTH = ["legs", "chest", "back"];
 const HARD_BIKE_FOCUSES = new Set([
   "VO2max",
@@ -65,47 +65,72 @@ export function getSessionWarnings(
   const currentCat = currentSession.category;
 
   // Rule A: Same-day session already completed within 6 hours.
-  // Schumann et al. 2022 (Sports Medicine) — concurrent training
-  // impairs explosive strength when sessions are stacked too close;
-  // 6h separation is conservative based on glycogen restoration data.
+  // Interference only applies when the bike work is HARD — an easy Z2
+  // spin after lifting is low-conflict, and lifting-then-riding is
+  // actually the favourable order (Murlasits et al. 2018 meta; Eddens
+  // et al. 2018). Molecular basis for the 3-6h window: Fyfe et al.
+  // 2014 (AMPK-mTOR competition).
   const todayLogs = recentLogs.filter((l) => isSameDay(l.loggedAt, todayDate));
   if (todayLogs.length > 0) {
     const lastLog = todayLogs.reduce((latest, l) =>
       new Date(l.loggedAt) > new Date(latest.loggedAt) ? l : latest,
     );
-    const lastCat = lastLog.template.category;
+    const last = {
+      category: lastLog.template.category,
+      name: lastLog.template.name,
+      focus: lastLog.template.focus ?? null,
+    };
     const hoursSince =
       (todayDate.getTime() - new Date(lastLog.loggedAt).getTime()) / 3600000;
     const isInterference =
-      (HARD_BIKE.includes(currentCat) && STRENGTH.includes(lastCat)) ||
-      (STRENGTH.includes(currentCat) && HARD_BIKE.includes(lastCat)) ||
-      (HARD_BIKE.includes(currentCat) && HARD_BIKE.includes(lastCat));
+      (isHardBike(currentSession) && STRENGTH.includes(last.category)) ||
+      (STRENGTH.includes(currentCat) && isHardBike(last)) ||
+      (isHardBike(currentSession) && isHardBike(last));
     if (isInterference && hoursSince < 6) {
       warnings.push({
         rule: "same-day-interference",
         severity: "warn",
-        message: `You logged ${lastLog.template.name} ${hoursSince.toFixed(1)}h ago. Research shows separating hard sessions by 6+ hours improves adaptations to both.`,
-        citation: "Schumann et al. 2022, Sports Medicine",
+        message: `You logged ${lastLog.template.name} ${hoursSince.toFixed(1)}h ago. Separating hard sessions by 6+ hours improves adaptations to both; if stacking is unavoidable, lift first.`,
+        citation: "Fyfe et al. 2014; Murlasits et al. 2018",
       });
     }
   }
 
-  // Rule B: Yesterday hard, today hard.
+  // Rule B: consecutive hard days, in two evidence-backed flavours.
   const yesterdayLogs = recentLogs.filter((l) =>
     isYesterday(l.loggedAt, todayDate),
   );
   if (yesterdayLogs.length > 0) {
-    const yesterdayWasHard = yesterdayLogs.some((l) =>
-      HARD_BIKE.includes(l.template.category),
-    );
+    const tpl = (l: RecentLog) => ({
+      category: l.template.category,
+      name: l.template.name,
+      focus: l.template.focus ?? null,
+    });
+    // B1: hard bike yesterday, hard anything today.
+    const yesterdayHardBike = yesterdayLogs.some((l) => isHardBike(tpl(l)));
     const todayIsHard =
-      HARD_BIKE.includes(currentCat) || isHeavyLegs(currentSession);
-    if (yesterdayWasHard && todayIsHard) {
+      isHardBike(currentSession) || isHeavyLowerBody(currentSession);
+    if (yesterdayHardBike && todayIsHard) {
       warnings.push({
         rule: "back-to-back-hard",
         severity: "info",
         message: `Yesterday was a hard session. Two consecutive high-intensity days can compromise quality. If you feel fatigued, consider easing today's intensity.`,
         citation: "Polarized training research, Seiler 2010",
+      });
+    }
+    // B2: heavy lower-body lifting yesterday, hard bike today.
+    // Neuromuscular deficits from a heavy lower-body bout persist
+    // 24-48h (resolving by ~72h) and degrade subsequent endurance
+    // quality (Doma & Deakin 2017, Sports Medicine).
+    const yesterdayHeavyLower = yesterdayLogs.some((l) =>
+      isHeavyLowerBody(tpl(l)),
+    );
+    if (yesterdayHeavyLower && isHardBike(currentSession)) {
+      warnings.push({
+        rule: "heavy-legs-before-hard-bike",
+        severity: "info",
+        message: `Heavy lower-body lifting was less than 24h ago — leg fatigue persists 24-48h and can blunt today's high-intensity quality. Expect reduced numbers, or swap with an easier day.`,
+        citation: "Doma & Deakin 2017, Sports Medicine",
       });
     }
   }
@@ -131,11 +156,17 @@ export function getSessionWarnings(
         }),
     );
     if (hardLast7.length >= 2) {
+      // Softened from a hard warning: the "~2 hard sessions/week"
+      // figure is Seiler's observation of elite training, not a
+      // validated ceiling — and for recreational athletes a pyramidal
+      // mix is as effective as strict polarised (Rosenblat et al.
+      // 2025, Sports Med network meta-analysis). The real rule is
+      // keeping easy days genuinely easy.
       warnings.push({
         rule: "weekly-intensity-high",
-        severity: "warn",
-        message: `${hardLast7.length} hard sessions already in the last 7 days. This would make ${hardLast7.length + 1}. Polarised training data suggests ~80% easy / ~20% hard — consider easing this one or swapping for Z2 / recovery.`,
-        citation: "Seiler 2010, Polarized training; Esteve-Lanao 2007",
+        severity: "info",
+        message: `This would be hard session ${hardLast7.length + 1} in 7 days. Most trained athletes settle around 2-3 quality sessions a week — fine if you're recovering well, but make sure the easy days stay genuinely easy.`,
+        citation: "Seiler 2010; Rosenblat et al. 2025, Sports Medicine",
       });
     }
   }
@@ -161,8 +192,25 @@ export function countHardSessions(
   return sessions.filter(isHardSession).length;
 }
 
-function isHeavyLegs(s: Pick<SessionTemplate, "category" | "name">): boolean {
-  return s.category === "legs" && /heavy|max|peak|power/i.test(s.name);
+// A bike/metcon session that's actually hard — category alone isn't
+// enough (a Z2 recovery spin is category "speed" but not hard).
+function isHardBike(s: {
+  category: string;
+  name: string;
+  focus?: string | null;
+}): boolean {
+  return BIKE_CATS.includes(s.category) && isHardSession(s);
+}
+
+// Heavy lower-body strength work — squat/deadlift days (category
+// legs or back) that aren't deload/taper/mobility sessions. Used for
+// the 24-48h neuromuscular-recovery rule (Doma & Deakin 2017).
+function isHeavyLowerBody(
+  s: Pick<SessionTemplate, "category" | "name">,
+): boolean {
+  if (s.category !== "legs" && s.category !== "back") return false;
+  if (/deload|taper|mobility/i.test(s.name)) return false;
+  return /squat|deadlift/i.test(s.name) || HARD_STRENGTH_NAME.test(s.name);
 }
 
 function isSameDay(a: Date | string, b: Date): boolean {

@@ -128,7 +128,9 @@ export default function SessionLogForm({
   });
 
   // Rest timer — starts when a set is marked done. Heavy work
-  // (≤5 reps) gets 3min, everything else 90s.
+  // (≤5 reps) gets 3min; everything else 2min — sub-90s rest
+  // measurably costs strength and per-set volume (Schoenfeld et al.
+  // 2016 JSCR; Grgic et al. 2018 Sports Med review).
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [nowTs, setNowTs] = useState(0);
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function SessionLogForm({
         );
         return next;
       });
-      const restSecs = ex.reps != null && ex.reps <= 5 ? 180 : 90;
+      const restSecs = ex.reps != null && ex.reps <= 5 ? 180 : 120;
       setRestEndsAt(Date.now() + restSecs * 1000);
     }
     setDoneByExercise((prev) => {
