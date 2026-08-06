@@ -16,15 +16,17 @@ export default function SuggestedTarget({
   if (!prev && !suggestion && !liftTarget) return null;
 
   const hasPrev = prev && prev.weightKg != null;
+  // Delta vs last comparable set — the one-glance answer to "am I
+  // going up, down, or holding?"
+  const delta =
+    hasPrev && suggestion ? suggestion.weight - prev!.weightKg! : null;
 
   return (
-    <div className="mt-2 space-y-0.5 text-xs">
+    <div className="mt-2 space-y-1 text-xs">
       {hasPrev ? (
         <p className="text-stone-500">
           Last
-          {laneTag && (
-            <span className="text-stone-400"> ({laneTag})</span>
-          )}
+          {laneTag && <span className="text-stone-400"> ({laneTag})</span>}
           :{" "}
           <span className="font-semibold text-stone-700">
             {prev!.weightKg}kg × {prev!.reps ?? "?"}
@@ -41,15 +43,29 @@ export default function SuggestedTarget({
           </p>
         )
       )}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {suggestion && (
-          <p
-            className="text-amber-700 font-semibold flex items-center gap-1"
-            title={suggestion.reason}
-          >
+          <p className="text-amber-700 font-semibold flex items-center gap-1">
             <Target size={12} />
             Suggested: {suggestion.weight}kg
           </p>
+        )}
+        {delta != null && (
+          <span
+            className={`px-1.5 py-0.5 rounded-full font-semibold ${
+              delta > 0
+                ? "bg-emerald-50 text-emerald-700"
+                : delta < 0
+                  ? "bg-red-50 text-red-700"
+                  : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            {delta > 0
+              ? `↑ +${delta}kg vs last`
+              : delta < 0
+                ? `↓ ${delta}kg vs last`
+                : "= same as last"}
+          </span>
         )}
         {liftTarget != null && (
           <p className="text-stone-500">
@@ -58,6 +74,11 @@ export default function SuggestedTarget({
           </p>
         )}
       </div>
+      {suggestion && (
+        <p className="text-[11px] text-stone-400 leading-snug">
+          {suggestion.reason}
+        </p>
+      )}
     </div>
   );
 }

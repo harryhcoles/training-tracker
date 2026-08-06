@@ -42,8 +42,10 @@ export function isHardSession(s: {
     return true;
   }
   if (s.category === "endurance") {
-    // Endurance is generally easy unless it's a sweetspot session.
-    return s.focus === "Sweetspot";
+    // Endurance is generally easy unless the focus says otherwise —
+    // sweetspot, threshold, and race/race-pace long rides are all
+    // high-load days that must count toward the weekly hard total.
+    return s.focus != null && HARD_BIKE_FOCUSES.has(s.focus);
   }
   if (STRENGTH.includes(s.category)) {
     return HARD_STRENGTH_NAME.test(s.name);

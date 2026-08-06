@@ -87,8 +87,8 @@ export function getSuggestedTarget(
   if (prescribedWeightKg != null) {
     const baseline = prescribedWeightKg;
     let weight = baseline;
-    const label = isDeload ? "Deload" : "Programme";
-    let reason = `${label} prescription`;
+    const label = isDeload ? "deload" : "programme";
+    let reason = `Follows the ${label} prescription — no comparable prior set to adjust from`;
 
     // Only let RPE history adjust if the prior set was at a COMPARABLE
     // load (±10% of today's prescription).
@@ -104,14 +104,16 @@ export function getSuggestedTarget(
       const rpe = comparable.rpe;
       if (rpe <= 7) {
         weight = baseline + 2.5;
-        reason = `${label} +2.5kg — last comparable set was RPE ≤7`;
+        reason = `+2.5kg on the ${label} — last time was RPE ${rpe}, you had reps in reserve`;
       } else if (rpe >= 8 && rpe <= 9) {
         weight = baseline;
-        reason = `${label} weight — last comparable set was RPE 8-9`;
+        reason = `Held at ${label} weight — last time was RPE ${rpe}, right on target effort`;
       } else if (rpe === 10) {
         weight = Math.max(baseline - 2.5, 0);
-        reason = `${label} -2.5kg — last comparable set was RPE 10`;
+        reason = `-2.5kg off the ${label} — last time was RPE 10, too close to failure`;
       }
+    } else if (comparable) {
+      reason = `Follows the ${label} prescription — last set had no RPE logged, so nothing to adjust from`;
     }
 
     weight = roundTo2_5(weight);
@@ -160,16 +162,16 @@ export function getSuggestedTarget(
   let reason: string;
   if (baselineRpe == null) {
     weight = baselineWeight;
-    reason = `Match last session${scalingNote}`;
+    reason = `Match last session — no RPE logged, so nothing to adjust from${scalingNote}`;
   } else if (baselineRpe <= 7) {
     weight = baselineWeight + 2.5;
-    reason = `Last set RPE ≤7 — add 2.5kg${scalingNote}`;
+    reason = `+2.5kg on last session — it was RPE ${baselineRpe}, you had reps in reserve${scalingNote}`;
   } else if (baselineRpe >= 8 && baselineRpe <= 9) {
     weight = baselineWeight;
-    reason = `Last set RPE 8-9 — maintain${scalingNote}`;
+    reason = `Match last session — it was RPE ${baselineRpe}, right on target effort${scalingNote}`;
   } else if (baselineRpe === 10) {
     weight = Math.max(baselineWeight - 2.5, 0);
-    reason = `Last set RPE 10 — back off 2.5kg${scalingNote}`;
+    reason = `-2.5kg off last session — it was RPE 10, too close to failure${scalingNote}`;
   } else {
     weight = baselineWeight;
     reason = `Match last session${scalingNote}`;

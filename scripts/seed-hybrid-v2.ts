@@ -226,6 +226,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
@@ -239,6 +240,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 2, reps: 8, note: "@12.5kg DBs" },
       { name: "Barbell Row", sets: 2, reps: 8, note: "@45kg" },
       { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "DB Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
     ],
   },
   {
@@ -252,6 +254,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
@@ -266,6 +269,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 8, note: "@15kg DBs" },
     ],
   },
   {
@@ -279,6 +283,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
@@ -292,6 +297,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 2, reps: 6, note: "@12.5kg DBs" },
       { name: "Barbell Row", sets: 2, reps: 6, note: "@45kg" },
       { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "DB Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
     ],
   },
   {
@@ -306,6 +312,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 8, note: "@15kg DBs" },
     ],
   },
   {
@@ -319,6 +326,7 @@ const BENCH: StrengthT[] = [
       { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
       { name: "Barbell Row", sets: 3, reps: 6, note: "@55kg" },
       { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
@@ -496,6 +504,7 @@ const UPPER: StrengthT[] = [
       { name: "Standing Overhead Press", sets: 4, reps: 5, note: "@40kg · explosive concentric" },
       { name: "Weighted Pull-up", sets: 4, reps: 5, note: "+10kg" },
       { name: "Pendlay Row", sets: 3, reps: 6, note: "@55kg" },
+      { name: "Hammer Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
@@ -507,6 +516,7 @@ const UPPER: StrengthT[] = [
     exercises: [
       { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@30kg" },
       { name: "Pull-up", sets: 3, reps: 5, note: "Bodyweight" },
+      { name: "Hammer Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
     ],
   },
   {
@@ -519,6 +529,7 @@ const UPPER: StrengthT[] = [
       { name: "Standing Overhead Press", sets: 4, reps: 8, note: "@30kg" },
       { name: "Pull-up", sets: 4, reps: 8, note: "Bodyweight" },
       { name: "Pendlay Row", sets: 3, reps: 8 },
+      { name: "Hammer Curl", sets: 3, reps: 12, note: "@10kg DBs" },
     ],
   },
   {
@@ -531,6 +542,7 @@ const UPPER: StrengthT[] = [
       { name: "Standing Overhead Press", sets: 4, reps: 5, note: "@42.5kg · explosive concentric" },
       { name: "Weighted Pull-up", sets: 4, reps: 4, note: "+15kg" },
       { name: "Pendlay Row", sets: 3, reps: 6, note: "@60kg" },
+      { name: "Hammer Curl", sets: 3, reps: 8, note: "@15kg DBs" },
     ],
   },
   {
@@ -543,6 +555,7 @@ const UPPER: StrengthT[] = [
       { name: "Standing Overhead Press", sets: 4, reps: 8, note: "@32.5kg" },
       { name: "Pull-up", sets: 4, reps: 8, note: "Bodyweight" },
       { name: "Pendlay Row", sets: 3, reps: 8 },
+      { name: "Hammer Curl", sets: 3, reps: 12, note: "@10kg DBs" },
     ],
   },
   {
@@ -554,6 +567,7 @@ const UPPER: StrengthT[] = [
     exercises: [
       { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@32.5kg" },
       { name: "Pull-up", sets: 3, reps: 5, note: "Bodyweight" },
+      { name: "Hammer Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
     ],
   },
   {
@@ -566,6 +580,7 @@ const UPPER: StrengthT[] = [
       { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@45kg · explosive concentric" },
       { name: "Weighted Pull-up", sets: 3, reps: 3, note: "+20kg" },
       { name: "Pendlay Row", sets: 3, reps: 5 },
+      { name: "Hammer Curl", sets: 3, reps: 8, note: "@15kg DBs" },
     ],
   },
   {
@@ -577,6 +592,7 @@ const UPPER: StrengthT[] = [
     exercises: [
       { name: "Standing Overhead Press", sets: 3, reps: 6 },
       { name: "Weighted Pull-up", sets: 3, reps: 5, note: "+15kg" },
+      { name: "Hammer Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
     ],
   },
   {
