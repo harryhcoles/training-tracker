@@ -285,21 +285,21 @@ export default async function Home() {
         <div className="flex gap-1">
           <Link
             href="/schedule"
-            className="p-2 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
+            className="p-3 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
             aria-label="Schedule"
           >
             <Calendar size={20} />
           </Link>
           <Link
             href="/library"
-            className="p-2 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
+            className="p-3 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
             aria-label="Library"
           >
             <Library size={20} />
           </Link>
           <Link
             href="/settings"
-            className="p-2 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
+            className="p-3 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100"
             aria-label="Settings"
           >
             <SettingsIcon size={20} />

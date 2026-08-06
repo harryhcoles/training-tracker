@@ -1,17 +1,49 @@
 import { Target } from "lucide-react";
 
+// Barbell lifts get a plate breakdown under the suggestion — one less
+// thing to work out between sets. 20kg bar assumed.
+const BARBELL_LIFTS = new Set([
+  "Back Squat",
+  "Pause Squat",
+  "Bench Press",
+  "Close-Grip Bench Press",
+  "Deadlift",
+  "Barbell Row",
+  "Pendlay Row",
+  "Standing Overhead Press",
+]);
+const PLATE_SIZES = [20, 15, 10, 5, 2.5, 1.25];
+
+function plateBreakdown(totalKg: number): string | null {
+  const BAR = 20;
+  if (totalKg < BAR) return null;
+  if (totalKg === BAR) return "empty bar";
+  let perSide = (totalKg - BAR) / 2;
+  const plates: number[] = [];
+  for (const p of PLATE_SIZES) {
+    while (perSide >= p - 1e-9) {
+      plates.push(p);
+      perSide -= p;
+    }
+  }
+  if (perSide > 1e-9) return null;
+  return `bar + ${plates.join(" + ")} per side`;
+}
+
 export default function SuggestedTarget({
   prev,
   suggestion,
   liftTarget,
   laneTag,
   targetReps,
+  exerciseName,
 }: {
   prev: { weightKg: number | null; reps: number | null; rpe: number | null } | null;
   suggestion: { weight: number; reason: string } | null;
   liftTarget: number | null;
   laneTag?: "heavy" | "deload";
   targetReps?: number | null;
+  exerciseName?: string;
 }) {
   if (!prev && !suggestion && !liftTarget) return null;
 
@@ -37,7 +69,7 @@ export default function SuggestedTarget({
         </p>
       ) : (
         suggestion && (
-          <p className="text-stone-400 italic">
+          <p className="text-stone-500 italic">
             No prior{laneTag ? ` ${laneTag}` : ""}
             {targetReps != null ? ` ${targetReps}-rep` : ""} set yet
           </p>
@@ -75,10 +107,18 @@ export default function SuggestedTarget({
         )}
       </div>
       {suggestion && (
-        <p className="text-[11px] text-stone-400 leading-snug">
+        <p className="text-[11px] text-stone-500 leading-snug">
           {suggestion.reason}
         </p>
       )}
+      {suggestion &&
+        exerciseName &&
+        BARBELL_LIFTS.has(exerciseName) &&
+        plateBreakdown(suggestion.weight) && (
+          <p className="text-[11px] text-stone-500 leading-snug">
+            {plateBreakdown(suggestion.weight)}
+          </p>
+        )}
     </div>
   );
 }

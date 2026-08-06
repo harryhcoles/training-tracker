@@ -19,3 +19,11 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Visible keyboard-focus indicator everywhere — buttons, links,
+   inputs. Invisible focus was a WCAG failure across the app. */
+:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
