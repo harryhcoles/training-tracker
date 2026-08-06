@@ -6,6 +6,10 @@ import { Check } from "lucide-react";
 import SuggestedTarget from "@/components/suggested-target";
 import WarningBanner from "@/components/warning-banner";
 import type { SessionWarning } from "@/lib/training-rules";
+import {
+  GOAL_PACE_LOWER_KMH,
+  GOAL_PACE_UPPER_KMH,
+} from "@/lib/goal-pace";
 
 type PrevTopSet = {
   weightKg: number | null;
@@ -228,8 +232,8 @@ export default function SessionLogForm({
   const effectiveSpeed = explicitSpeed ?? derivedSpeed;
   const inGoalPace =
     effectiveSpeed != null &&
-    effectiveSpeed >= 28 &&
-    effectiveSpeed <= 30;
+    effectiveSpeed >= GOAL_PACE_LOWER_KMH &&
+    effectiveSpeed <= GOAL_PACE_UPPER_KMH;
 
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -360,7 +364,7 @@ export default function SessionLogForm({
             >
               {inGoalPace
                 ? `✓ Counts toward goal-pace HR trend (${effectiveSpeed.toFixed(1)} km/h)`
-                : `Avg speed ${effectiveSpeed.toFixed(1)} km/h — outside the 28-30 km/h goal-pace band`}
+                : `Avg speed ${effectiveSpeed.toFixed(1)} km/h — outside the ${GOAL_PACE_LOWER_KMH}-${GOAL_PACE_UPPER_KMH} km/h goal-pace band`}
             </p>
           )}
           {explicitSpeed == null && derivedSpeed == null && (

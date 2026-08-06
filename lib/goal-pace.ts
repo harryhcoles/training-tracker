@@ -1,9 +1,13 @@
 // Computes goal-pace HR fields from ride averages. The manual-entry
 // case has no per-second streams, so the rule is: if the whole ride
-// averaged 28-30 km/h, the whole-ride avgHr counts as hrAtGoalPace
-// and the full duration counts as time in goal pace.
+// averaged inside the goal-pace band, the whole-ride avgHr counts as
+// hrAtGoalPace and the full duration counts as time in goal pace.
+//
+// Band calibrated Aug 2026 from Strava: proven 100km race pace is
+// 26.7 km/h (2 Aug), goal 28.0, stretch 28.6. Lower bound 27 so
+// race-pace training blocks register in the HR trend.
 
-export const GOAL_PACE_LOWER_KMH = 28;
+export const GOAL_PACE_LOWER_KMH = 27;
 export const GOAL_PACE_UPPER_KMH = 30;
 
 export function computeAvgSpeed(

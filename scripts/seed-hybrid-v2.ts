@@ -629,7 +629,7 @@ const TUE_Z2: BikeT[] = Array.from({ length: 10 }, (_, i) => ({
   category: "speed" as const,
   name: `W${i + 1} Tue: Z2 ride 60-75min`,
   description:
-    "Easy spin to flush Mon's legs. STRICT Z2 — conversational, nose-breathing if possible. Do NOT let this drift into tempo or it becomes fatigue with no payoff.",
+    "Easy spin to flush Mon's legs. STRICT Z2 — for you that's 20-23 km/h solo (HR 125-140, conversational). Your Strava shows 'Z2' rides drifting to 25 km/h @ HR 136 — that's tempo, and it steals from Wed. Slower is correct here.",
   durationMin: 70,
   focus: "Z2",
 }));
@@ -747,8 +747,9 @@ const SAT_LONG: BikeT[] = [
     weekNum: 2,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W2 Sat: 50km easy (deload)",
-    description: "Deload long ride. Z1-low Z2. Café ride is fine.",
+    name: "W2 Sat: 50km easy (cycle restart wk 1)",
+    description:
+      "CYCLING RESET — week 1 of the rebuilt 9-week arc. Absorb the 2 Aug 100km race effort (26.7 km/h, untrained — that's the new baseline). Z1-low Z2, 20-22 km/h. Café ride is fine.",
     durationMin: 100,
     focus: "Recovery",
   },
@@ -756,9 +757,9 @@ const SAT_LONG: BikeT[] = [
     weekNum: 3,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W3 Sat: 70km + 2×15min race pace",
+    name: "W3 Sat: 70km + 2×15min @ 27",
     description:
-      "Z2 base (125-145 bpm) with 2×15min blocks @ goal race pace (28-30 kph) in the middle third, 10min Z2 between. Ride the blocks in your race position. Practice fuelling — 60-90g carbs/hr.",
+      "Z2 base (20-23 km/h, 125-145 bpm) with 2×15min blocks @ 27 km/h — just above your proven 100km pace of 26.7 — in the middle third, 10min Z2 between. Race position in the blocks. Practice fuelling — 60-90g carbs/hr.",
     durationMin: 140,
     focus: "Race-pace",
   },
@@ -766,9 +767,9 @@ const SAT_LONG: BikeT[] = [
     weekNum: 4,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W4 Sat: 80km + 2×20min race pace",
+    name: "W4 Sat: 80km + 2×20min @ 27-28",
     description:
-      "Z2 base with 2×20min @ goal race pace (28-30 kph), 10min Z2 between — second block in the final third, on tired legs. Race position throughout the blocks.",
+      "Z2 base with 2×20min @ 27-28 km/h, 10min Z2 between — second block in the final third, on tired legs. Race position throughout the blocks.",
     durationMin: 165,
     focus: "Race-pace",
   },
@@ -776,9 +777,9 @@ const SAT_LONG: BikeT[] = [
     weekNum: 5,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W5 Sat: 90km + 3×15min race pace",
+    name: "W5 Sat: 90km + 3×15min @ 27-28",
     description:
-      "Z2 base with 3×15min @ goal race pace spread through the ride — last block starts after 70km, when it counts. Practice exact race-day breakfast + bottles.",
+      "Z2 base with 3×15min @ 27-28 km/h spread through the ride — last block starts after 70km, when it counts. Practice exact race-day breakfast + bottles.",
     durationMin: 190,
     focus: "Race-pace",
   },
@@ -797,7 +798,7 @@ const SAT_LONG: BikeT[] = [
     category: "endurance",
     name: "W7 Sat: 100km TEST (calibration)",
     description:
-      "TEST. 100km at the hardest pace you can hold STEADY — target 26-28 kph based on ride history (your previous 100km+ rides averaged 22-25). Record avg HR, avg speed, and last-25km HR drift. This ride SETS the W9/W10 pace targets — don't blow up chasing 30.",
+      "TEST. 100km at the hardest pace you can hold STEADY — target 27.5-28.5 km/h. You rode 26.7 untrained on 2 Aug; five trained weeks should buy ~1-1.5 km/h. WEAR THE HR STRAP — avg HR, avg speed and last-25km drift from this ride set the W9/W10 targets.",
     durationMin: 200,
     focus: "Race",
   },
@@ -807,7 +808,7 @@ const SAT_LONG: BikeT[] = [
     category: "endurance",
     name: "W8 Sat: 110km Z2 + fast finish",
     description:
-      "Longest ride of the plan. Z2 for durability, race-day fuelling exactly as planned (75-90g carbs/hr). Final 25min at race pace — training the finish on empty legs is the most race-specific work there is.",
+      "Longest ride of the plan. Z2 (20-23 km/h) for durability, race-day fuelling exactly as planned (75-90g carbs/hr). Final 25min at 27-28 km/h — training the finish on empty legs is the most race-specific work there is.",
     durationMin: 220,
     focus: "Z2",
   },
@@ -827,7 +828,7 @@ const SAT_LONG: BikeT[] = [
     category: "endurance",
     name: "W10 Sat: 100km GOAL RIDE",
     description:
-      "RACE DAY. 100km at the target locked in from the W7 test + W9 rehearsal. Pacing: first 30km feel TOO easy (1-2 kph under target), middle 40km at target, last 30km empty the tank. 75-90g carbs/hr from 20min in. Don't chase early speed.",
+      "RACE DAY. Target 28.0 km/h (3:34) — stretch sub-3:30 (28.6) if the W7 test and W9 rehearsal back it. Baseline: 26.7 untrained on 2 Aug; 8 trained weeks buy the difference. Pacing: first 30km @ ~27 (feels TOO easy), middle 40km at target, last 30km empty the tank. 75-90g carbs/hr from 20min in.",
     durationMin: 210,
     focus: "Race",
   },
