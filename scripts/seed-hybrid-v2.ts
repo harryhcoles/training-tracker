@@ -757,30 +757,30 @@ const SAT_LONG: BikeT[] = [
     weekNum: 3,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W3 Sat: 70km + 2×15min @ 27",
+    name: "W3 Sat: 80km + 2×15min @ 27",
     description:
       "Z2 base (20-23 km/h, 125-145 bpm) with 2×15min blocks @ 27 km/h — just above your proven 100km pace of 26.7 — in the middle third, 10min Z2 between. Race position in the blocks. Practice fuelling — 60-90g carbs/hr.",
-    durationMin: 140,
+    durationMin: 165,
     focus: "Race-pace",
   },
   {
     weekNum: 4,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W4 Sat: 80km + 2×20min @ 27-28",
+    name: "W4 Sat: 90km + 2×20min @ 27-28",
     description:
       "Z2 base with 2×20min @ 27-28 km/h, 10min Z2 between — second block in the final third, on tired legs. Race position throughout the blocks.",
-    durationMin: 165,
+    durationMin: 190,
     focus: "Race-pace",
   },
   {
     weekNum: 5,
     dayOfWeek: SAT,
     category: "endurance",
-    name: "W5 Sat: 90km + 3×15min @ 27-28",
+    name: "W5 Sat: 100km + 3×15min @ 27-28",
     description:
-      "Z2 base with 3×15min @ 27-28 km/h spread through the ride — last block starts after 70km, when it counts. Practice exact race-day breakfast + bottles.",
-    durationMin: 190,
+      "Z2 base with 3×15min @ 27-28 km/h spread through the ride — last block starts after 80km, when it counts. Practice exact race-day breakfast + bottles.",
+    durationMin: 210,
     focus: "Race-pace",
   },
   {
