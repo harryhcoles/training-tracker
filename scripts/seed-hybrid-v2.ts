@@ -17,7 +17,7 @@ const p = new PrismaClient();
 
 const PROGRAMME_NAME = "Hybrid 12wk — Strength + 100km";
 const PROGRAMME_DESC =
-  "10-week 7-day hybrid plan v2. Mon squat + ≤15min metcon. Tue Z2 ride + bench. Wed hard bike. Thu deadlift. Fri OHP + weighted pull. Sat long ride (A session). Sun rest. Two true hard days (Mon metcon + Wed bike); long ride locked to Sat. Trimmed accessories: BSS + hip thrust on squat day; SL-RDL + step-up (or box jump heavy weeks) on deadlift day. Explosive concentric intent on heavy weeks 1, 4, 7.";
+  "17-week 7-day hybrid plan v2. W1-10: strength + 100km goal-ride build (Mon squat + metcon, Tue Z2 + bench, Wed hard bike, Thu deadlift, Fri OHP + pull, Sat long ride, Sun rest). W11-17: background endurance base — Sat Z2 long rides climb 120→180km with deloads at W11 (post-goal recovery) and W15. Strength for W11+ arrives with the post-goal block programme.";
 
 const SCHEDULE_SLOTS: Array<{ dayOfWeek: number; categoryId: string }> = [
   { dayOfWeek: 0, categoryId: "legs" }, // Mon Squat
@@ -623,7 +623,7 @@ const UPPER: StrengthT[] = [
 // TUESDAY Z2 RIDE (speed, paired with Bench)
 // Same 60-75min Z2 every week — simple and consistent.
 // ============================================================
-const TUE_Z2: BikeT[] = Array.from({ length: 10 }, (_, i) => ({
+const TUE_Z2: BikeT[] = Array.from({ length: 17 }, (_, i) => ({
   weekNum: i + 1,
   dayOfWeek: TUE,
   category: "speed" as const,
@@ -832,6 +832,80 @@ const SAT_LONG: BikeT[] = [
     durationMin: 210,
     focus: "Race",
   },
+  // ---- Background endurance base: 100 → 180km ----
+  // Post-goal arc. Longest-ride jumps held to ~9-12% per week
+  // (single-ride spikes, not weekly totals, carry the injury risk —
+  // Buist et al. 2008 showed the classic 10%-per-week rule itself is
+  // unvalidated). Deloads at W11 (absorb the goal ride) and W15.
+  {
+    weekNum: 11,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W11 Sat: 70km easy (post-goal recovery)",
+    description:
+      "DELOAD. Absorb the goal ride — Z1-low Z2 (20-22 km/h), flat route, café stop encouraged. The 180km base build starts next week.",
+    durationMin: 200,
+    focus: "Recovery",
+  },
+  {
+    weekNum: 12,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W12 Sat: Long Z2 — 120km",
+    description:
+      "Base build 1 of 5. STRICT Z2 (20-23 km/h, 125-145 bpm) — the point is hours, not pace. 60-90g carbs/hr from the first hour. Wear the HR strap: last-hour HR drift is the durability signal to watch across this block.",
+    durationMin: 335,
+    focus: "Z2",
+  },
+  {
+    weekNum: 13,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W13 Sat: Long Z2 — 135km",
+    description:
+      "Base build 2 of 5. Z2 throughout. Practice eating real food on the bike — gels alone won't carry 180km.",
+    durationMin: 375,
+    focus: "Z2",
+  },
+  {
+    weekNum: 14,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W14 Sat: Long Z2 — 150km",
+    description:
+      "Base build 3 of 5. Z2. Longest since the March 180. Sort saddle/contact-point comfort now — position problems compound past 5 hours.",
+    durationMin: 415,
+    focus: "Z2",
+  },
+  {
+    weekNum: 15,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W15 Sat: 80km easy (deload)",
+    description: "DELOAD. Z1-low Z2. Half the distance, all the recovery.",
+    durationMin: 225,
+    focus: "Recovery",
+  },
+  {
+    weekNum: 16,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W16 Sat: Long Z2 — 165km",
+    description:
+      "Base build 4 of 5. Z2. Full fuelling rehearsal — 75-90g carbs/hr, electrolytes, real food.",
+    durationMin: 455,
+    focus: "Z2",
+  },
+  {
+    weekNum: 17,
+    dayOfWeek: SAT,
+    category: "endurance",
+    name: "W17 Sat: Long Z2 — 180km 🎯",
+    description:
+      "Base build 5 of 5 — the 180. Z2 discipline the whole way (you did 180.6km in March at 23.1 km/h; this one should feel more controlled). Compare last-hour HR drift vs W12 — that delta is the durability gain from this block.",
+    durationMin: 490,
+    focus: "Z2",
+  },
 ];
 
 // ============================================================
@@ -952,9 +1026,9 @@ async function main() {
     where: { id: existing.id },
     data: {
       description: PROGRAMME_DESC,
-      totalWeeks: 10,
+      totalWeeks: 17,
       cycleLength: 7,
-      deloadWeeks: [2, 6],
+      deloadWeeks: [2, 6, 11, 15],
     },
   });
   console.log(
