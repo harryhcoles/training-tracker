@@ -1,15 +1,17 @@
-// Hybrid v2 — drop-in 7-day weekly replacement for the 10-cycle plan.
-// Same loads, same progression, accessories trimmed and remapped per
-// the user's v2 spec.
+// Hybrid v3 — push/pull/legs + upper, machine gym, 7-day week.
 //
 // Weekly template:
-//   Mon  legs (Squat) + conditioning (Metcon ≤15min hard)
-//   Tue  chest (Bench) + speed (Z2 ride 60-75min)
+//   Mon  legs (LEGS — squat, leg press, SL RDL, machines)
+//   Tue  chest (PUSH — bench heavy) + speed (Z2 ride 60-75min)
 //   Wed  speed (Hard bike — VO2 / Threshold per week)
-//   Thu  back (Deadlift)
-//   Fri  back (OHP + Weighted Pull)
+//   Thu  back (PULL — deadlift heavy)
+//   Fri  chest (UPPER — hypertrophy, machine-led)
 //   Sat  endurance (Long ride — A session)
 //   Sun  REST
+//
+// Metcon templates are still seeded (available in the library) but
+// no longer hold a schedule slot — three rides a week already cover
+// conditioning, and the Monday metcon was eating recovery.
 
 import { PrismaClient } from "@prisma/client";
 
@@ -17,16 +19,15 @@ const p = new PrismaClient();
 
 const PROGRAMME_NAME = "Hybrid 12wk — Strength + 100km";
 const PROGRAMME_DESC =
-  "17-week 7-day hybrid plan v2. W1-10: strength + 100km goal-ride build (Mon squat + metcon, Tue Z2 + bench, Wed hard bike, Thu deadlift, Fri OHP + pull, Sat long ride, Sun rest). W11-17: background endurance base — Sat Z2 long rides climb 120→180km with deloads at W11 (post-goal recovery) and W15. Strength for W11+ arrives with the post-goal block programme.";
+  "17-week 7-day hybrid plan v3. Push/pull/legs + upper: Mon legs, Tue push + Z2 ride, Wed hard bike, Thu pull (deadlift), Fri upper hypertrophy, Sat long ride, Sun rest. Tue/Thu heavy, Fri hypertrophy, Mon alternates — legs still trained heavy twice a week for cycling economy. W1-10 strength + 100km goal-ride build. W11-17: background endurance base, Sat Z2 rides climb 120→180km, deloads W11 (post-goal) and W15. Strength for W11+ arrives with the post-goal block programme.";
 
 const SCHEDULE_SLOTS: Array<{ dayOfWeek: number; categoryId: string }> = [
-  { dayOfWeek: 0, categoryId: "legs" }, // Mon Squat
-  { dayOfWeek: 0, categoryId: "conditioning" }, // Mon Metcon
-  { dayOfWeek: 1, categoryId: "chest" }, // Tue Bench
+  { dayOfWeek: 0, categoryId: "legs" }, // Mon LEGS
+  { dayOfWeek: 1, categoryId: "chest" }, // Tue PUSH
   { dayOfWeek: 1, categoryId: "speed" }, // Tue Z2 ride
   { dayOfWeek: 2, categoryId: "speed" }, // Wed hard bike
-  { dayOfWeek: 3, categoryId: "back" }, // Thu Deadlift
-  { dayOfWeek: 4, categoryId: "back" }, // Fri OHP+Pull
+  { dayOfWeek: 3, categoryId: "back" }, // Thu PULL
+  { dayOfWeek: 4, categoryId: "chest" }, // Fri UPPER
   { dayOfWeek: 5, categoryId: "endurance" }, // Sat Long ride
 ];
 
@@ -69,36 +70,92 @@ function phaseForWeek(w: number): "base" | "build" | "peak" {
 }
 
 // ============================================================
-// SQUAT DAY (Mon)
-// Heavy weeks 1, 4, 7 carry explosive-intent cue.
+// PUSH / PULL / LEGS + UPPER  (v3 — machine gym)
+//
+//   Mon  LEGS   knee-dominant + hinge (squat, leg press, SL RDL)
+//   Tue  PUSH   heavy (bench) + Z2 ride
+//   Thu  PULL   heavy (deadlift)
+//   Fri  UPPER  hypertrophy, machine-led — 2nd frequency for upper
+//
+// Within-week undulation: Tue/Thu heavy (3-6 reps, RPE 8), Fri
+// hypertrophy (10-20 reps near failure). Mon alternates heavy
+// (W1/4/7) and hypertrophy (W3/5/8) because there is only one
+// leg day. Deloads W2/W6, test W9, taper W10.
+//
+// Legs still get two heavy sessions a week — Mon knee-dominant,
+// Thu hip-dominant via the deadlift — which is the dose shown to
+// improve cycling economy and TT performance. Mon sits 48h before
+// Wed's intervals and Thu 48h before the Sat long ride, clearing
+// the 24-48h neuromuscular recovery window.
+//
+// No prescribed weights anywhere: every suggestion comes from
+// logged history via the app's last-lift + RPE rule.
 // ============================================================
-const EXPL = "EXPLOSIVE INTENT — drive every concentric up as fast as you can, control the lowering.";
+const EXPL =
+  "EXPLOSIVE INTENT — drive every concentric up as fast as you can, control the lowering.";
+const SLRDL =
+  "Slow eccentric, hips back, chase the hamstring stretch. Balance is part of the lift — don't rush it.";
+const SEATED_CURL = "Seated — hip flexed keeps the hamstring under stretch.";
+const LEG_EXT = "Rectus femoris — the quad head squats barely reach.";
+const OH_TRI = "Overhead — triceps long head trained at length.";
+// Deliberately makes no "long head" claim: the best-controlled trial
+// on shoulder angle and elbow-flexor growth (Attarieh et al. 2025)
+// came back null. It's a good curl; arm position is preference.
+const INC_CURL = "Strict — no swing, control the lowering.";
 
-const SQUAT: StrengthT[] = [
+// Friday is identical week to week (bar deload/test/taper) so the
+// suggestion engine always has same-rep history to compare against.
+const UPPER_HYP: StrengthEx[] = [
+  { name: "Machine Chest Press", sets: 3, reps: 12 },
+  { name: "Wide-Grip Lat Pulldown", sets: 3, reps: 12 },
+  { name: "Cable Fly", sets: 3, reps: 15, note: "Full range — big stretch at the bottom" },
+  { name: "Seated Machine Row", sets: 3, reps: 12 },
+  { name: "Cable Lateral Raise", sets: 3, reps: 20 },
+  { name: "Incline DB Curl", sets: 3, reps: 12, note: INC_CURL },
+  { name: "Overhead Cable Triceps Extension", sets: 3, reps: 15, note: OH_TRI },
+];
+const UPPER_DELOAD: StrengthEx[] = [
+  { name: "Machine Chest Press", sets: 2, reps: 12 },
+  { name: "Wide-Grip Lat Pulldown", sets: 2, reps: 12 },
+  { name: "Cable Lateral Raise", sets: 2, reps: 15 },
+  { name: "Incline DB Curl", sets: 2, reps: 12 },
+  { name: "Overhead Cable Triceps Extension", sets: 2, reps: 12 },
+];
+
+// ============================================================
+// MONDAY — LEGS
+// ============================================================
+const LEGS: StrengthT[] = [
   {
     weekNum: 1,
     dayOfWeek: MON,
     category: "legs",
-    name: "W1 Mon: Squat 5×5 @ 65kg",
-    description: "Heavy intro. " + EXPL,
+    name: "W1 Mon: Legs — heavy (squat 4×5)",
+    description:
+      "Heavy leg day. " +
+      EXPL +
+      " Leg press carries the quad volume without piling more load on the spine before Wednesday's intervals.",
     exercises: [
-      { name: "Back Squat", sets: 5, reps: 5, note: "@65kg · EXPLOSIVE concentric" },
-      { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true, note: "DBs" },
-      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg · hard swings, hinge dominant" },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
-      { name: "Plank", sets: 3, reps: null, note: "60s hold" },
+      { name: "Back Squat", sets: 4, reps: 5, note: "EXPLOSIVE concentric" },
+      { name: "Leg Press", sets: 3, reps: 8 },
+      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 10, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 3, reps: 12, note: LEG_EXT },
+      { name: "Standing Calf Raise", sets: 3, reps: 12 },
     ],
   },
   {
     weekNum: 2,
     dayOfWeek: MON,
     category: "legs",
-    name: "W2 Mon: Squat 3×5 @ 60kg (deload)",
-    description: "Relaxed deload. Pulled forward to match the fatigue you're carrying in.",
+    name: "W2 Mon: Legs — deload",
+    description:
+      "Deload. Keep every pattern, cut the volume. Leave 3-4 reps in reserve on everything — this week is for absorbing, not pushing.",
     exercises: [
-      { name: "Back Squat", sets: 3, reps: 5, note: "@60kg" },
-      { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@20kg · easy" },
+      { name: "Back Squat", sets: 3, reps: 5 },
+      { name: "Leg Press", sets: 2, reps: 10 },
+      { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 2, reps: 12 },
       { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
@@ -106,54 +163,61 @@ const SQUAT: StrengthT[] = [
     weekNum: 3,
     dayOfWeek: MON,
     category: "legs",
-    name: "W3 Mon: Squat 4×8 @ 57.5kg",
-    description: "Moderate. Controlled tempo, top set RPE 7-8.",
+    name: "W3 Mon: Legs — hypertrophy",
+    description:
+      "Hypertrophy leg day. Every working set to RPE 8-9 — one or two reps left, no more. Controlled eccentrics, full depth.",
     exercises: [
-      { name: "Back Squat", sets: 4, reps: 8, note: "@57.5kg" },
-      { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
-      { name: "Plank", sets: 3, reps: null, note: "60s hold" },
+      { name: "Back Squat", sets: 3, reps: 8 },
+      { name: "Hack Squat", sets: 4, reps: 10, note: "Leg press if the hack squat is busy" },
+      { name: "Single Leg RDL", sets: 3, reps: 10, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 12, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 3, reps: 15, note: LEG_EXT },
+      { name: "Standing Calf Raise", sets: 4, reps: 15, note: "Pause in the stretched position" },
     ],
   },
   {
     weekNum: 4,
     dayOfWeek: MON,
     category: "legs",
-    name: "W4 Mon: Squat 4×5 @ 72.5kg + pause",
-    description: "Heavy build with pause squats. " + EXPL + " If a rep slows, rack it and reset.",
+    name: "W4 Mon: Legs — heavy (squat 4×5)",
+    description:
+      "Heavy leg day. " + EXPL + " If a rep slows badly, rack it and reset — quality over grinding.",
     exercises: [
-      { name: "Back Squat", sets: 4, reps: 5, note: "@72.5kg · EXPLOSIVE concentric" },
-      { name: "Pause Squat", sets: 3, reps: 3, note: "@60kg · 2s pause in hole" },
-      { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
-      { name: "Plank", sets: 3, reps: null, note: "60s hold" },
+      { name: "Back Squat", sets: 4, reps: 5, note: "EXPLOSIVE concentric" },
+      { name: "Leg Press", sets: 4, reps: 8 },
+      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 10, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 3, reps: 12, note: LEG_EXT },
+      { name: "Standing Calf Raise", sets: 3, reps: 12 },
     ],
   },
   {
     weekNum: 5,
     dayOfWeek: MON,
     category: "legs",
-    name: "W5 Mon: Squat 4×8 @ 62.5kg",
-    description: "Moderate build. Top of moderate zone — bar speed crisp.",
+    name: "W5 Mon: Legs — hypertrophy",
+    description:
+      "Hypertrophy. Chase the stretch on every rep — that's where the growth signal is strongest. RPE 8-9 on working sets.",
     exercises: [
-      { name: "Back Squat", sets: 4, reps: 8, note: "@62.5kg" },
-      { name: "Bulgarian Split Squat", sets: 3, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 3, reps: 15, note: "@24kg" },
-      { name: "Standing Calf Raise", sets: 3, reps: 15 },
+      { name: "Back Squat", sets: 3, reps: 8 },
+      { name: "Hack Squat", sets: 4, reps: 10 },
+      { name: "Single Leg RDL", sets: 3, reps: 10, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 12, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 3, reps: 15, note: LEG_EXT },
+      { name: "Standing Calf Raise", sets: 4, reps: 15 },
     ],
   },
   {
     weekNum: 6,
     dayOfWeek: MON,
     category: "legs",
-    name: "W6 Mon: Squat 3×3 @ 65kg (deload)",
-    description: "Deload triples. Light, restorative.",
+    name: "W6 Mon: Legs — deload",
+    description: "Deload triples. Light and restorative — bar speed fast, effort low.",
     exercises: [
-      { name: "Back Squat", sets: 3, reps: 3, note: "@65kg" },
-      { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@20kg · easy" },
+      { name: "Back Squat", sets: 3, reps: 3 },
+      { name: "Leg Press", sets: 2, reps: 8 },
+      { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 2, reps: 12 },
       { name: "Standing Calf Raise", sets: 2, reps: 15 },
     ],
   },
@@ -161,29 +225,33 @@ const SQUAT: StrengthT[] = [
     weekNum: 7,
     dayOfWeek: MON,
     category: "legs",
-    name: "W7 Mon: Squat 4×3 @ 80kg (peak)",
+    name: "W7 Mon: Legs — peak (squat 4×3)",
     description:
-      "PEAK. Peak triples — pure rate-of-force-development. " +
-      EXPL +
-      " This is the adaptation that transfers to the pedal stroke.",
+      "PEAK. Triples at maximum concentric velocity — this is the rate-of-force-development work that transfers to the pedal stroke. " +
+      EXPL,
     exercises: [
-      { name: "Back Squat", sets: 4, reps: 3, note: "@80kg · MAX CONCENTRIC velocity" },
-      { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@24kg" },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Back Squat", sets: 4, reps: 3, note: "MAX CONCENTRIC velocity" },
+      { name: "Leg Press", sets: 3, reps: 6 },
+      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 10, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 2, reps: 12 },
+      { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 8,
     dayOfWeek: MON,
     category: "legs",
-    name: "W8 Mon: Squat 3×6 @ 67.5kg",
-    description: "Moderate peak — sharpen. Volume light to keep legs for bike.",
+    name: "W8 Mon: Legs — hypertrophy (trimmed)",
+    description:
+      "Hypertrophy, volume trimmed. Saturday is the 110km — leave enough in the legs to ride it properly.",
     exercises: [
-      { name: "Back Squat", sets: 3, reps: 6, note: "@67.5kg" },
-      { name: "Bulgarian Split Squat", sets: 2, reps: 8, perSide: true },
-      { name: "Kettlebell Swing", sets: 2, reps: 15, note: "@24kg" },
-      { name: "Standing Calf Raise", sets: 2, reps: 15 },
+      { name: "Back Squat", sets: 3, reps: 6 },
+      { name: "Hack Squat", sets: 3, reps: 10 },
+      { name: "Single Leg RDL", sets: 3, reps: 10, perSide: true, note: SLRDL },
+      { name: "Seated Leg Curl", sets: 3, reps: 12, note: SEATED_CURL },
+      { name: "Leg Extension", sets: 3, reps: 15 },
+      { name: "Standing Calf Raise", sets: 3, reps: 15 },
     ],
   },
   {
@@ -192,9 +260,10 @@ const SQUAT: StrengthT[] = [
     category: "legs",
     name: "W9 Mon: Squat test 3-5RM",
     description:
-      "TEST. Build to a 3-5RM — target set by your recent top sets (the app's Last/Suggested line). Drive every rep fast. Calf raise only after — don't pre-fatigue.",
+      "TEST. Build to a 3-5RM — the app's Last/Suggested line sets the target from your recent top sets. Drive every rep fast. Accessories light: don't pre-fatigue Thursday's pull.",
     exercises: [
       { name: "Back Squat", sets: 1, reps: 3, note: "Build to 3-5RM" },
+      { name: "Seated Leg Curl", sets: 2, reps: 10 },
       { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
@@ -202,131 +271,130 @@ const SQUAT: StrengthT[] = [
     weekNum: 10,
     dayOfWeek: MON,
     category: "legs",
-    name: "W10 Mon: Squat 3×3 @ 65kg (taper, fast)",
-    description: "Taper. Light, fast bar speed. Goal ride 5 days away.",
+    name: "W10 Mon: Legs — taper (fast bar)",
+    description:
+      "Taper. Light, fast bar speed. The goal ride is five days out — this primes the legs, it does not fatigue them.",
     exercises: [
-      { name: "Back Squat", sets: 3, reps: 3, note: "@65kg · fast bar" },
+      { name: "Back Squat", sets: 3, reps: 3, note: "Fast bar, stop well short" },
+      { name: "Leg Extension", sets: 2, reps: 12 },
       { name: "Standing Calf Raise", sets: 2, reps: 12 },
     ],
   },
 ];
 
 // ============================================================
-// BENCH DAY (Tue) — paired with Tue Z2 ride
+// TUESDAY — PUSH (heavy) — paired with the Z2 ride
 // ============================================================
-const BENCH: StrengthT[] = [
+const PUSH: StrengthT[] = [
   {
     weekNum: 1,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W1 Tue: Bench 5×5 @ 57.5kg",
-    description: "Heavy intro. " + EXPL,
+    name: "W1 Tue: Push — heavy (bench 4×5)",
+    description:
+      "Heavy push. " + EXPL + " Lift before the Z2 ride — strength-first is the better order for both.",
     exercises: [
-      { name: "Bench Press", sets: 5, reps: 5, note: "@57.5kg · EXPLOSIVE concentric" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
+      { name: "Bench Press", sets: 4, reps: 5, note: "EXPLOSIVE concentric" },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 8 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 10, note: OH_TRI },
     ],
   },
   {
     weekNum: 2,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W2 Tue: Bench 3×5 @ 50kg (deload)",
-    description: "Deload.",
+    name: "W2 Tue: Push — deload",
+    description: "Deload push. Keep the patterns, drop the volume.",
     exercises: [
-      { name: "Bench Press", sets: 3, reps: 5, note: "@50kg" },
-      { name: "Dumbbell Overhead Press", sets: 2, reps: 8, note: "@12.5kg DBs" },
-      { name: "Barbell Row", sets: 2, reps: 8, note: "@45kg" },
-      { name: "Face Pull", sets: 2, reps: 15 },
-      { name: "DB Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
+      { name: "Bench Press", sets: 3, reps: 5 },
+      { name: "Machine Shoulder Press", sets: 2, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 3,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W3 Tue: Bench 4×8 @ 50kg",
-    description: "Moderate. Controlled tempo.",
+    name: "W3 Tue: Push — heavy (bench 4×6)",
+    description: "Heavy push, slightly higher reps. Top set at RPE 8 — one or two left.",
     exercises: [
-      { name: "Bench Press", sets: 4, reps: 8, note: "@50kg" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
+      { name: "Bench Press", sets: 4, reps: 6 },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 8 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 10, note: OH_TRI },
     ],
   },
   {
     weekNum: 4,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W4 Tue: Bench 4×5 @ 62.5kg + CG",
-    description: "Heavy build + close-grip. " + EXPL,
+    name: "W4 Tue: Push — heavy (bench 4×5)",
+    description: "Heavy push. " + EXPL,
     exercises: [
-      { name: "Bench Press", sets: 4, reps: 5, note: "@62.5kg · EXPLOSIVE concentric" },
-      { name: "Close-Grip Bench Press", sets: 3, reps: 6, note: "@55kg" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 8, note: "@15kg DBs" },
+      { name: "Bench Press", sets: 4, reps: 5, note: "EXPLOSIVE concentric" },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 8 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 6 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 10, note: OH_TRI },
     ],
   },
   {
     weekNum: 5,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W5 Tue: Bench 4×8 @ 55kg",
-    description: "Moderate build.",
+    name: "W5 Tue: Push — heavy (bench 4×6)",
+    description: "Heavy push. Controlled tempo down, crisp speed up.",
     exercises: [
-      { name: "Bench Press", sets: 4, reps: 8, note: "@55kg" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 8, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 4, reps: 8, note: "@55kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
+      { name: "Bench Press", sets: 4, reps: 6 },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 10 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 12, note: OH_TRI },
     ],
   },
   {
     weekNum: 6,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W6 Tue: Bench 3×3 @ 60kg (deload)",
-    description: "Deload triples.",
+    name: "W6 Tue: Push — deload",
+    description: "Deload triples. Fast bar, low effort.",
     exercises: [
-      { name: "Bench Press", sets: 3, reps: 3, note: "@60kg" },
-      { name: "Dumbbell Overhead Press", sets: 2, reps: 6, note: "@12.5kg DBs" },
-      { name: "Barbell Row", sets: 2, reps: 6, note: "@45kg" },
-      { name: "Face Pull", sets: 2, reps: 15 },
-      { name: "DB Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
+      { name: "Bench Press", sets: 3, reps: 3 },
+      { name: "Machine Shoulder Press", sets: 2, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 7,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W7 Tue: Bench 4×3 @ 70kg (peak)",
+    name: "W7 Tue: Push — peak (bench 4×3)",
     description: "PEAK. " + EXPL,
     exercises: [
-      { name: "Bench Press", sets: 4, reps: 3, note: "@70kg · MAX CONCENTRIC velocity" },
-      { name: "Close-Grip Bench Press", sets: 3, reps: 5, note: "@57.5kg" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 3, reps: 6, note: "@60kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 8, note: "@15kg DBs" },
+      { name: "Bench Press", sets: 4, reps: 3, note: "MAX CONCENTRIC velocity" },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 6 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 6 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 10, note: OH_TRI },
     ],
   },
   {
     weekNum: 8,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W8 Tue: Bench 3×6 @ 60kg",
-    description: "Moderate peak — maintenance.",
+    name: "W8 Tue: Push — moderate (bench 3×6)",
+    description: "Moderate push — sharpen, don't dig a hole.",
     exercises: [
-      { name: "Bench Press", sets: 3, reps: 6, note: "@60kg" },
-      { name: "Dumbbell Overhead Press", sets: 3, reps: 6, note: "@17.5kg DBs" },
-      { name: "Barbell Row", sets: 3, reps: 6, note: "@55kg" },
-      { name: "Face Pull", sets: 3, reps: 15 },
-      { name: "DB Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
+      { name: "Bench Press", sets: 3, reps: 6 },
+      { name: "Incline Machine Chest Press", sets: 3, reps: 10 },
+      { name: "Machine Shoulder Press", sets: 3, reps: 8 },
+      { name: "Cable Lateral Raise", sets: 3, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 3, reps: 12, note: OH_TRI },
     ],
   },
   {
@@ -334,138 +402,149 @@ const BENCH: StrengthT[] = [
     dayOfWeek: TUE,
     category: "chest",
     name: "W9 Tue: Bench test 3-5RM",
-    description:
-      "TEST. Build to a 3-5RM — target set by your recent top sets.",
+    description: "TEST. Build to a 3-5RM — target set by your recent top sets.",
     exercises: [
       { name: "Bench Press", sets: 1, reps: 3, note: "Build to 3-5RM" },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
     ],
   },
   {
     weekNum: 10,
     dayOfWeek: TUE,
     category: "chest",
-    name: "W10 Tue: Bench 3×3 @ 57.5kg (taper, fast)",
-    description: "Taper. Light, fast bar. Minimal accessories — fresh for goal ride.",
+    name: "W10 Tue: Push — taper (fast bar)",
+    description: "Taper. Light, fast bar. Minimal accessories — stay fresh for the goal ride.",
     exercises: [
-      { name: "Bench Press", sets: 3, reps: 3, note: "@57.5kg · fast bar" },
-      { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "Bench Press", sets: 3, reps: 3, note: "Fast bar" },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
+      { name: "Overhead Cable Triceps Extension", sets: 2, reps: 12 },
     ],
   },
 ];
 
 // ============================================================
-// DEADLIFT DAY (Thu)
-// Box Jump on heavy weeks (1, 4, 7); DB Step-up otherwise.
+// THURSDAY — PULL (heavy)
 // ============================================================
-const DEADLIFT: StrengthT[] = [
+const PULL: StrengthT[] = [
   {
     weekNum: 1,
     dayOfWeek: THU,
     category: "back",
-    name: "W1 Thu: Deadlift 4×5 @ 90kg",
-    description: "Heavy intro. " + EXPL,
+    name: "W1 Thu: Pull — heavy (deadlift 4×5)",
+    description:
+      "Heavy pull. " +
+      EXPL +
+      " Chest-supported rowing keeps the lower back fresh for Saturday's long ride.",
     exercises: [
-      { name: "Deadlift", sets: 4, reps: 5, note: "@90kg · EXPLOSIVE concentric" },
-      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true, note: "DBs" },
-      { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest · RFD" },
-      { name: "Seated Calf Raise", sets: 3, reps: 15 },
-      { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
+      { name: "Deadlift", sets: 4, reps: 5, note: "EXPLOSIVE concentric" },
+      { name: "Chest-Supported Row", sets: 4, reps: 8 },
+      { name: "Lat Pulldown", sets: 3, reps: 8 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 10 },
+      { name: "Hammer Curl", sets: 3, reps: 12, note: "Brachialis and grip — pays off on long rides" },
     ],
   },
   {
     weekNum: 2,
     dayOfWeek: THU,
     category: "back",
-    name: "W2 Thu: Deadlift 3×5 @ 75kg (deload)",
-    description: "Deload. Light pull.",
+    name: "W2 Thu: Pull — deload",
+    description: "Deload pull. Light off the floor, nothing near failure.",
     exercises: [
-      { name: "Deadlift", sets: 3, reps: 5, note: "@75kg" },
-      { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
-      { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 2, reps: 15 },
-      { name: "Pallof Press", sets: 2, reps: 10, perSide: true },
+      { name: "Deadlift", sets: 3, reps: 5 },
+      { name: "Chest-Supported Row", sets: 2, reps: 8 },
+      { name: "Lat Pulldown", sets: 2, reps: 10 },
+      { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "Cable Curl", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 3,
     dayOfWeek: THU,
     category: "back",
-    name: "W3 Thu: Deadlift 4×8 @ 77.5kg",
-    description: "Moderate. 8s in DL are taxing — pace.",
+    name: "W3 Thu: Pull — heavy (deadlift 4×8)",
+    description: "Moderate-heavy. Eights on the deadlift are taxing — pace them and reset every rep.",
     exercises: [
-      { name: "Deadlift", sets: 4, reps: 8, note: "@77.5kg" },
-      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
-      { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 3, reps: 15 },
-      { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
+      { name: "Deadlift", sets: 4, reps: 8 },
+      { name: "Chest-Supported Row", sets: 4, reps: 8 },
+      { name: "Lat Pulldown", sets: 3, reps: 10 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 12 },
+      { name: "Hammer Curl", sets: 3, reps: 12 },
     ],
   },
   {
     weekNum: 4,
     dayOfWeek: THU,
     category: "back",
-    name: "W4 Thu: Deadlift 4×3 @ 97.5kg + jumps",
-    description: "Heavy build. Triples + jumps for potentiation. " + EXPL,
+    name: "W4 Thu: Pull — heavy (deadlift 4×3)",
+    description: "Heavy triples. " + EXPL,
     exercises: [
-      { name: "Deadlift", sets: 4, reps: 3, note: "@97.5kg · EXPLOSIVE concentric" },
-      { name: "Box Jump", sets: 5, reps: 3, note: "Max height, 60s rest" },
-      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 3, reps: 15 },
-      { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
+      { name: "Deadlift", sets: 4, reps: 3, note: "EXPLOSIVE concentric" },
+      { name: "Chest-Supported Row", sets: 4, reps: 6 },
+      { name: "Lat Pulldown", sets: 3, reps: 8 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 10 },
+      { name: "Hammer Curl", sets: 3, reps: 12 },
     ],
   },
   {
     weekNum: 5,
     dayOfWeek: THU,
     category: "back",
-    name: "W5 Thu: Deadlift 3×8 @ 82.5kg",
-    description: "Moderate build.",
+    name: "W5 Thu: Pull — heavy (deadlift 3×8)",
+    description: "Moderate build. Strong position every rep — no rounding as it gets hard.",
     exercises: [
-      { name: "Deadlift", sets: 3, reps: 8, note: "@82.5kg" },
-      { name: "Single Leg RDL", sets: 3, reps: 8, perSide: true },
-      { name: "DB Step-up", sets: 3, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 3, reps: 15 },
+      { name: "Deadlift", sets: 3, reps: 8 },
+      { name: "Chest-Supported Row", sets: 4, reps: 8 },
+      { name: "Lat Pulldown", sets: 3, reps: 10 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 12 },
+      { name: "Hammer Curl", sets: 3, reps: 12 },
     ],
   },
   {
     weekNum: 6,
     dayOfWeek: THU,
     category: "back",
-    name: "W6 Thu: Deadlift 2×8 @ 72.5kg (deload)",
-    description: "Deload — minimal volume.",
+    name: "W6 Thu: Pull — deload",
+    description: "Deload — minimal volume off the floor.",
     exercises: [
-      { name: "Deadlift", sets: 2, reps: 8, note: "@72.5kg" },
-      { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
-      { name: "DB Step-up", sets: 2, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 2, reps: 15 },
+      { name: "Deadlift", sets: 2, reps: 8 },
+      { name: "Chest-Supported Row", sets: 2, reps: 8 },
+      { name: "Lat Pulldown", sets: 2, reps: 10 },
+      { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "Cable Curl", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 7,
     dayOfWeek: THU,
     category: "back",
-    name: "W7 Thu: Deadlift 3×3 @ 105kg + jumps",
+    name: "W7 Thu: Pull — peak (deadlift 3×3)",
     description:
-      "PEAK. Peak triples. " +
-      EXPL +
-      " The test ride is Sat — pace this carefully, save legs.",
+      "PEAK. " + EXPL + " The 100km calibration ride is Saturday — pace this carefully and save the legs.",
     exercises: [
-      { name: "Deadlift", sets: 3, reps: 3, note: "@105kg · MAX CONCENTRIC" },
-      { name: "Box Jump", sets: 5, reps: 3 },
-      { name: "Seated Calf Raise", sets: 2, reps: 15 },
-      { name: "Pallof Press", sets: 3, reps: 10, perSide: true },
+      { name: "Deadlift", sets: 3, reps: 3, note: "MAX CONCENTRIC velocity" },
+      { name: "Chest-Supported Row", sets: 3, reps: 6 },
+      { name: "Lat Pulldown", sets: 3, reps: 8 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 10 },
     ],
   },
   {
     weekNum: 8,
     dayOfWeek: THU,
     category: "back",
-    name: "W8 Thu: Deadlift 3×6 @ 87.5kg",
-    description: "Moderate peak. 110km Z2 ride looms Sat.",
+    name: "W8 Thu: Pull — moderate (deadlift 3×6)",
+    description: "Moderate. The 110km Z2 ride looms on Saturday — leave something in the tank.",
     exercises: [
-      { name: "Deadlift", sets: 3, reps: 6, note: "@87.5kg" },
-      { name: "Single Leg RDL", sets: 2, reps: 8, perSide: true },
-      { name: "Seated Calf Raise", sets: 2, reps: 15 },
+      { name: "Deadlift", sets: 3, reps: 6 },
+      { name: "Chest-Supported Row", sets: 3, reps: 8 },
+      { name: "Lat Pulldown", sets: 3, reps: 10 },
+      { name: "Face Pull", sets: 3, reps: 15 },
+      { name: "Cable Curl", sets: 3, reps: 12 },
+      { name: "Hammer Curl", sets: 3, reps: 12 },
     ],
   },
   {
@@ -474,150 +553,124 @@ const DEADLIFT: StrengthT[] = [
     category: "back",
     name: "W9 Thu: Deadlift single test",
     description:
-      "TEST. Build to a heavy single — target set by your recent top sets. STOP if RPE 9+ — save legs for dress rehearsal Sat.",
+      "TEST. Build to a heavy single — target set by your recent top sets. STOP at RPE 9+; Saturday's dress rehearsal matters more than this number.",
     exercises: [
       { name: "Deadlift", sets: 1, reps: 1, note: "Build to a heavy single" },
-      { name: "Seated Calf Raise", sets: 2, reps: 12 },
+      { name: "Lat Pulldown", sets: 2, reps: 10 },
+      { name: "Face Pull", sets: 2, reps: 15 },
     ],
   },
   {
     weekNum: 10,
     dayOfWeek: THU,
     category: "back",
-    name: "W10 Thu: Mobility only (no DL — protect goal ride)",
-    description: "REST legs for goal ride. Mobility flow only. No deadlift this week.",
+    name: "W10 Thu: Pull — taper (no deadlift)",
+    description:
+      "No deadlift this week — protect the goal ride. Upper pulling only, then mobility.",
     exercises: [
+      { name: "Lat Pulldown", sets: 2, reps: 10 },
+      { name: "Face Pull", sets: 2, reps: 15 },
+      { name: "Cable Curl", sets: 2, reps: 12 },
       { name: "Mobility flow", sets: 1, reps: null, note: "15-20 min hip / hamstring / thoracic" },
     ],
   },
 ];
 
 // ============================================================
-// OHP + WEIGHTED PULL DAY (Fri)
+// FRIDAY — UPPER (hypertrophy, machine-led)
 // ============================================================
 const UPPER: StrengthT[] = [
   {
     weekNum: 1,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W1 Fri: OHP 4×5 @ 40kg + WPull 4×5 +10kg",
-    description: "Heavy intro upper. " + EXPL,
-    exercises: [
-      { name: "Standing Overhead Press", sets: 4, reps: 5, note: "@40kg · explosive concentric" },
-      { name: "Weighted Pull-up", sets: 4, reps: 5, note: "+10kg" },
-      { name: "Pendlay Row", sets: 3, reps: 6, note: "@55kg" },
-      { name: "Hammer Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
-    ],
+    category: "chest",
+    name: "W1 Fri: Upper — hypertrophy",
+    description:
+      "The hypertrophy half of the week's upper work. Every working set to RPE 8-9 — one or two reps left. Machines let you push that close safely.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 2,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W2 Fri: OHP 3×5 @ 30kg (deload)",
-    description: "Deload upper. Light.",
-    exercises: [
-      { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@30kg" },
-      { name: "Pull-up", sets: 3, reps: 5, note: "Bodyweight" },
-      { name: "Hammer Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
-    ],
+    category: "chest",
+    name: "W2 Fri: Upper — deload",
+    description: "Deload. Half the sets, nothing near failure.",
+    exercises: UPPER_DELOAD,
   },
   {
     weekNum: 3,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W3 Fri: OHP 4×8 @ 30kg + Pull 4×8 BW",
-    description: "Moderate. Higher-rep upper.",
-    exercises: [
-      { name: "Standing Overhead Press", sets: 4, reps: 8, note: "@30kg" },
-      { name: "Pull-up", sets: 4, reps: 8, note: "Bodyweight" },
-      { name: "Pendlay Row", sets: 3, reps: 8 },
-      { name: "Hammer Curl", sets: 3, reps: 12, note: "@10kg DBs" },
-    ],
+    category: "chest",
+    name: "W3 Fri: Upper — hypertrophy",
+    description:
+      "Hypertrophy. Same session as last time — beat it by a rep or a small load bump, that's the whole game.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 4,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W4 Fri: OHP 4×5 @ 42.5kg + WPull 4×4 +15kg",
-    description: "Heavy build. " + EXPL,
-    exercises: [
-      { name: "Standing Overhead Press", sets: 4, reps: 5, note: "@42.5kg · explosive concentric" },
-      { name: "Weighted Pull-up", sets: 4, reps: 4, note: "+15kg" },
-      { name: "Pendlay Row", sets: 3, reps: 6, note: "@60kg" },
-      { name: "Hammer Curl", sets: 3, reps: 8, note: "@15kg DBs" },
-    ],
+    category: "chest",
+    name: "W4 Fri: Upper — hypertrophy",
+    description: "Hypertrophy. RPE 8-9 on working sets, full range, controlled eccentrics.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 5,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W5 Fri: OHP 4×8 @ 32.5kg",
-    description: "Moderate build volume.",
-    exercises: [
-      { name: "Standing Overhead Press", sets: 4, reps: 8, note: "@32.5kg" },
-      { name: "Pull-up", sets: 4, reps: 8, note: "Bodyweight" },
-      { name: "Pendlay Row", sets: 3, reps: 8 },
-      { name: "Hammer Curl", sets: 3, reps: 12, note: "@10kg DBs" },
-    ],
+    category: "chest",
+    name: "W5 Fri: Upper — hypertrophy",
+    description: "Hypertrophy. Chase the stretched position on the fly, curl and triceps extension.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 6,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W6 Fri: OHP 3×5 @ 32.5kg (deload)",
-    description: "Deload upper.",
-    exercises: [
-      { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@32.5kg" },
-      { name: "Pull-up", sets: 3, reps: 5, note: "Bodyweight" },
-      { name: "Hammer Curl", sets: 2, reps: 10, note: "@10kg DBs · deload" },
-    ],
+    category: "chest",
+    name: "W6 Fri: Upper — deload",
+    description: "Deload. Half the sets, nothing near failure.",
+    exercises: UPPER_DELOAD,
   },
   {
     weekNum: 7,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W7 Fri: OHP 3×5 @ 45kg + WPull 3×3 +20kg",
-    description: "PEAK. " + EXPL,
-    exercises: [
-      { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@45kg · explosive concentric" },
-      { name: "Weighted Pull-up", sets: 3, reps: 3, note: "+20kg" },
-      { name: "Pendlay Row", sets: 3, reps: 5 },
-      { name: "Hammer Curl", sets: 3, reps: 8, note: "@15kg DBs" },
-    ],
+    category: "chest",
+    name: "W7 Fri: Upper — hypertrophy (capped)",
+    description:
+      "Hypertrophy, but cap it at RPE 8 this week — Saturday is the 100km calibration ride and it matters more.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 8,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W8 Fri: OHP 3×6 + WPull 3×5 +15kg",
-    description: "Moderate peak.",
-    exercises: [
-      { name: "Standing Overhead Press", sets: 3, reps: 6 },
-      { name: "Weighted Pull-up", sets: 3, reps: 5, note: "+15kg" },
-      { name: "Hammer Curl", sets: 3, reps: 10, note: "@12.5kg DBs" },
-    ],
+    category: "chest",
+    name: "W8 Fri: Upper — hypertrophy",
+    description: "Hypertrophy. Upper work costs the legs nothing — push this one.",
+    exercises: UPPER_HYP,
   },
   {
     weekNum: 9,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W9 Fri: Weighted Pull-up test",
+    category: "chest",
+    name: "W9 Fri: Upper — light (test week)",
     description:
-      "TEST. Build weighted pull-up to a heavy single — added load set by your recent top sets.",
+      "Light. Three tests already this week — this session is maintenance, not stimulus.",
     exercises: [
-      { name: "Weighted Pull-up", sets: 1, reps: 3, note: "Build to a heavy single" },
-      { name: "Standing Overhead Press", sets: 3, reps: 5, note: "Supplemental" },
+      { name: "Machine Chest Press", sets: 2, reps: 12 },
+      { name: "Wide-Grip Lat Pulldown", sets: 2, reps: 12 },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
+      { name: "Incline DB Curl", sets: 2, reps: 12 },
     ],
   },
   {
     weekNum: 10,
     dayOfWeek: FRI,
-    category: "back",
-    name: "W10 Fri: OHP light 3×5 (taper)",
-    description: "Taper. Light upper — keep top end primed without fatigue.",
+    category: "chest",
+    name: "W10 Fri: Upper — taper",
+    description: "Taper. Move, don't fatigue. Goal ride is tomorrow.",
     exercises: [
-      { name: "Standing Overhead Press", sets: 3, reps: 5, note: "@30kg" },
-      { name: "Pull-up", sets: 2, reps: 5, note: "Bodyweight" },
+      { name: "Machine Chest Press", sets: 2, reps: 12 },
+      { name: "Wide-Grip Lat Pulldown", sets: 2, reps: 12 },
+      { name: "Cable Lateral Raise", sets: 2, reps: 15 },
     ],
   },
 ];
@@ -1035,7 +1088,7 @@ function tidyNote(s: string): string | null {
   return t.length > 0 ? t : null;
 }
 
-const ALL_STRENGTH: StrengthT[] = [...SQUAT, ...BENCH, ...DEADLIFT, ...UPPER].map(
+const ALL_STRENGTH: StrengthT[] = [...LEGS, ...PUSH, ...PULL, ...UPPER].map(
   (t) => ({
     ...t,
     name: stripKg(t.name),

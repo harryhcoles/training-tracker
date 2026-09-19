@@ -198,7 +198,60 @@ tests — consider trimming if fatigued.
   week mesocycle is convention, not evidence. Note: a "Caldas et al."
   periodization meta could not be verified; do not cite it.
 
-**Verdict:** rotation frequency barely matters for hypertrophy; undulation
+## 14. Exercise selection (v3 PPL programme, Sept 2026)
+
+Verified during the machine-gym redesign. These drive specific exercise
+choices in `scripts/seed-hybrid-v2.ts`.
+
+- **Seated > lying leg curl.** **Maeo et al. 2021**, *MSSE* 53(4):825-837.
+  12wk within-subject: whole hamstring **+14% seated vs +9% prone**;
+  biarticular heads +8-24% vs +4-19%. Hip flexion keeps the hamstring
+  under stretch. → seated leg curl is the primary hamstring isolation.
+- **Overhead > neutral triceps extension.** **Maeo et al. 2023**, *Eur J
+  Sport Sci* 23(7):1240-1250. Long head **+28.5% vs +19.6%**, whole
+  triceps +19.9% vs +13.9% — *despite 34-39% lighter absolute loads*.
+  → overhead cable extension is the main triceps movement, not pushdowns.
+- **Squats do not grow rectus femoris.** **Kubo et al. 2019**, *Eur J Appl
+  Physiol*: knee extensors +4.9% but **RF unchanged** at either depth.
+  **Earp et al. 2015**, *MSSE* 47(11): "no hypertrophy was observed in RF
+  at any location" after squat training. **Zabaleta-Korta et al. 2021**,
+  *J Sports Sci* 39(20): leg extension grew all three RF regions; Smith
+  squat grew only central vastus lateralis. → leg extension is
+  non-negotiable, and RF is a hip flexor that contributes to the pedal
+  upstroke.
+- **Machines = free weights for hypertrophy.** **Haugen et al. 2023**,
+  *BMC Sports Sci Med Rehabil* 15:103 (13 studies, n=1,016): hypertrophy
+  SMD −0.055 (95% CI −0.397 to 0.287), p=0.751 — null. Strength null too;
+  only test-specificity differs. **Schwanbeck et al. 2020**, *JSCR* 34(7)
+  agrees. → a machine-led programme costs nothing.
+- **Lengthened-position calf work.** **Kassiano et al. 2023**, *JSCR*
+  37(9):1746-1753: medial gastroc **+15.2%** (lengthened partials) vs
+  **+6.7%** (full ROM) vs +3.4% (shortened). → pause in the stretch.
+- **Bent-over rows load the lumbar spine most.** **Fenwick, Brown &
+  McGill 2009**, *JSCR* 23(5):1408-1417 (acute biomechanics, n=7).
+  → chest-supported/machine rows spare the back before long rides.
+  Caveat: no hypertrophy comparison exists between row variants.
+
+**Claims deliberately NOT used (checked and unsupported):**
+- *"Train in the stretch, always."* The only ROM meta-analysis (**Wolf et
+  al. 2023**, *Int J Strength Cond* 3(1)) slightly favours **full ROM**
+  overall (SMD 0.12); the lengthened-partial advantage is a subgroup with
+  a CI crossing zero, and **Ottinger et al. 2023** (*Strength Cond J*
+  45(2)) argues it only applies to muscles on the descending limb
+  (gastroc, hamstrings, triceps long head). Full ROM stays the default.
+- *"Incline/behind-body curls target the biceps long head."* **Attarieh
+  et al. 2025**, *Eur J Sport Sci* 25(4):e12279 — null (p=0.314, no
+  regional differences). Exercise notes must not make this claim.
+- *"Cable lateral raises beat dumbbells."* **Larsen et al. 2025**, *Front
+  Physiol* 16:1611468 — null with extreme Bayesian support (multivariate
+  BF <0.01). Implement is free choice.
+- *"Machines cause less systemic fatigue."* No peer-reviewed support
+  found; the closest matched comparison found no RPE or jump-decrement
+  difference. Plausible mechanism, not an evidence-based claim.
+
+---
+
+**Verdict (§13):** rotation frequency barely matters for hypertrophy; undulation
 modestly favours strength in trained lifters; blocks are more *efficient*
 per unit volume (valuable alongside cycling). App recommendation: weekly
 undulation inside the current programme; post-goal-ride, 4-6 week
